@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.iml
+
+# Flutter / Dart (app code arrives in Milestone 1)
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec_overrides.yaml
+
+# Android
+local.properties
+*.keystore
+.gradle/
+
+# iOS
+Pods/
+*.xcuserstate
+xcuserdata/
