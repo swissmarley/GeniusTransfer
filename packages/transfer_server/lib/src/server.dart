@@ -18,6 +18,7 @@ import 'shared_file.dart';
 import 'token.dart';
 import 'user_agent.dart';
 
+part 'pin.dart';
 part 'uploads.dart';
 
 /// Tunables for a [TransferServer]. The defaults are the product defaults.
@@ -65,10 +66,15 @@ class TransferServer {
     this.config = const ServerConfig(),
     this.mode = SessionMode.send,
     this.receiveOptions,
+    this.pin,
   })  : files = List.unmodifiable(files),
         token = token ?? generateToken() {
     if (mode == SessionMode.receive && receiveOptions == null) {
       throw ArgumentError('A receiving session needs ReceiveOptions.');
+    }
+    final p = pin;
+    if (p != null && !RegExp(r'^[0-9]{4,8}$').hasMatch(p)) {
+      throw ArgumentError.value(p, 'pin', 'Use 4 to 8 digits.');
     }
   }
 
@@ -77,6 +83,15 @@ class TransferServer {
   final ServerConfig config;
   final SessionMode mode;
   final ReceiveOptions? receiveOptions;
+
+  /// If set, guests must type it before they see anything. After
+  /// [maxPinAttempts] wrong tries the session accepts no more.
+  final String? pin;
+  final _pinGrants = <String>{};
+  int _pinFailures = 0;
+
+  /// Too many wrong PINs: nobody new can get in.
+  bool get pinLockedOut => pin != null && _pinFailures >= maxPinAttempts;
 
   final _batches = <String, _Batch>{};
   final _runningUploads = <Future<void>>{};
@@ -317,6 +332,9 @@ class TransferServer {
     if (rest.isEmpty) {
       return _redirect(request, '/${segments.first}/');
     }
+    if (!_pinAccepted(request)) {
+      return _requirePin(request, segments.first, rest, strings);
+    }
     if (rest.length == 1 && rest.first.isEmpty) {
       if (!isGet && !isHead) return _methodNotAllowed(request);
       _noteGuest(request, remote);
@@ -329,7 +347,10 @@ class TransferServer {
       final handled = await _routeUpload(request, remote, rest, strings);
       if (handled) return;
     }
-    if (rest.first == 'f' && (rest.length == 2 || rest.length == 3)) {
+    // f/: download. v/: show in the browser (iPhone guests save photos and
+    // videos to Photos from there).
+    if ((rest.first == 'f' || rest.first == 'v') &&
+        (rest.length == 2 || rest.length == 3)) {
       final index = _parseIndex(rest[1]);
       if (index == null) {
         return _sendMessage(request, HttpStatus.notFound, strings,
@@ -337,7 +358,8 @@ class TransferServer {
       }
       if (!isGet && !isHead) return _methodNotAllowed(request);
       _noteGuest(request, remote);
-      return _sendFile(request, index, remote, head: isHead);
+      return _sendFile(request, index, remote,
+          head: isHead, inline: rest.first == 'v');
     }
     if (rest.length == 1 && rest.first == 'status') {
       if (!isGet && !isHead) return _methodNotAllowed(request);
@@ -420,7 +442,7 @@ class TransferServer {
   }
 
   Future<void> _sendFile(HttpRequest request, int index, InternetAddress remote,
-      {required bool head}) async {
+      {required bool head, bool inline = false}) async {
     final file = files[index];
     final size = file.length;
     final response = request.response;
@@ -442,7 +464,8 @@ class TransferServer {
           lookupMimeType(file.name) ?? 'application/octet-stream')
       ..set(HttpHeaders.acceptRangesHeader, 'bytes')
       ..set(HttpHeaders.etagHeader, etag)
-      ..set('content-disposition', contentDisposition(file.name));
+      ..set('content-disposition',
+          contentDisposition(file.name, inline: inline));
     if (lastModified != null) {
       response.headers.set(HttpHeaders.lastModifiedHeader, lastModified);
     }

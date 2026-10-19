@@ -1,3 +1,5 @@
+import 'package:mime/mime.dart';
+
 import 'guest_strings.dart';
 import 'shared_file.dart';
 import 'user_agent.dart';
@@ -91,6 +93,15 @@ String renderSendPage({
   final total = files.fold<int>(0, (sum, f) => sum + f.length);
   final needsKeepHint = device.usesChromeDownloads &&
       files.any((f) => !chromeSafeExtensions.contains(extensionOf(f.name)));
+  // Downloads on an iPhone go to Files. Photos and videos get an extra
+  // "Open" link: shown in Safari, they can be saved to Photos from there.
+  bool forPhotos(SharedFile f) {
+    if (device.platform != GuestPlatform.ios) return false;
+    final type = lookupMimeType(f.name) ?? '';
+    return type.startsWith('image/') || type.startsWith('video/');
+  }
+
+  final photosHint = files.any(forPhotos);
 
   final items = StringBuffer();
   for (var i = 0; i < files.length; i++) {
@@ -107,6 +118,7 @@ String renderSendPage({
         '<div class="size">${escapeHtml(formatSize(f.length, s))}</div></div></div>'
         '<a class="dl" href="${escapeHtml(href)}" download data-s="s$i">'
         '${escapeHtml(s.get('download_button'))}</a>'
+        '${forPhotos(f) ? '<a class="view" href="${escapeHtml('v/$i/${Uri.encodeComponent(f.name)}')}">${escapeHtml(s.get('view_button'))}</a>' : ''}'
         '<p class="status" id="s$i" aria-live="polite"></p>'
         '</li>');
   }
@@ -136,12 +148,45 @@ String renderSendPage({
           ' · ${escapeHtml(s.get('send_tap_download'))}</p>'}'
       '<p class="note" id="where">${escapeHtml(s.get(whereKey(device)))}</p>'
       '${needsKeepHint ? '<p class="note warn">${escapeHtml(s.get('chrome_keep_hint'))}</p>' : ''}'
+      '${photosHint ? '<p class="note">${escapeHtml(s.get('ios_photos_hint'))}</p>' : ''}'
       '<ul class="files">$items</ul>'
       '${files.isEmpty ? '' : '<p class="foot">${escapeHtml(s.get('keep_page_open'))}</p>'}'
       '<p class="foot small">${escapeHtml(s.get('footer'))}</p>'
       '</main>'
       '<script nonce="$nonce">$_script</script>'
       '</body></html>';
+}
+
+/// Asks for the session PIN. A plain form: works without JavaScript.
+String renderPinPage({
+  required GuestStrings strings,
+  required String action,
+  required String? error,
+  required bool locked,
+}) {
+  final s = strings;
+  final form = locked
+      ? ''
+      : '<form method="post" action="${escapeHtml(action)}">'
+          '<label class="pick" for="pin">${escapeHtml(s.get('pin_label'))}</label>'
+          '<input id="pin" class="picker pin" name="pin" type="text" '
+          'inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" '
+          'maxlength="8" autofocus required>'
+          '<button class="dl" type="submit">${escapeHtml(s.get('pin_button'))}</button>'
+          '</form>';
+  return '<!DOCTYPE html>'
+      '<html lang="${s.languageCode}"><head>'
+      '<meta charset="utf-8">'
+      '<meta name="viewport" content="width=device-width, initial-scale=1">'
+      '<meta name="referrer" content="no-referrer">'
+      '<meta name="color-scheme" content="light dark">'
+      '<title>${escapeHtml(s.get('page_title'))}</title>'
+      '<style>$_css</style></head><body><main class="wrap">'
+      '<h1>${escapeHtml(s.get('pin_title'))}</h1>'
+      '<p class="sub">${escapeHtml(s.get('pin_body'))}</p>'
+      '${error == null ? '' : '<p class="note warn" role="alert">${escapeHtml(error)}</p>'}'
+      '$form'
+      '</main></body></html>';
 }
 
 /// A minimal page with a title and one line of text: expired links,
@@ -269,6 +314,8 @@ a.dl,button.dl{display:block;margin-top:12px;padding:16px;border-radius:12px;bac
 a.dl:active,button.dl:active{background:#1646b3}
 button.dl{width:100%;border:0;font-family:inherit;-webkit-appearance:none}
 button.dl[disabled]{opacity:.5}
+a.view{display:block;margin-top:8px;padding:12px;border-radius:12px;border:2px solid #1a56db;color:#1a56db;text-align:center;text-decoration:none;font-weight:600}
+.pin{font-size:26px;letter-spacing:6px;text-align:center;border-style:solid}
 form{margin:0 0 14px}
 .pick{display:block;margin:16px 0 6px;font-weight:600}
 .picker{display:block;width:100%;box-sizing:border-box;padding:14px;border:2px dashed #b8c2d6;border-radius:12px;background:#fff;font-size:16px}
@@ -289,6 +336,7 @@ body{background:#0f1115;color:#e7e9ee}
 .card{background:#1b1e24;box-shadow:none}
 .badge{background:#1b2a4a;color:#9dbbff}
 a.dl,button.dl{background:#3b6fe8}a.dl:active,button.dl:active{background:#2f5bc4}
+a.view{border-color:#9dbbff;color:#9dbbff}
 .picker{background:#1b1e24;border-color:#3a4150;color:#e7e9ee}
 .bar{background:#2a2e36}.fill{background:#3b6fe8}
 .note.ok{background:#12301c;color:#a6e9b9}

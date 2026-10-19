@@ -121,6 +121,10 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   /// Receive mode: the latest batch that finished, for a short message.
   IncomingBatch? lastFinished;
 
+  /// Wrong PINs typed by guests so far, and whether that locked the session.
+  int wrongPins = 0;
+  bool pinLockedOut = false;
+
   Future<void> _deliveries = Future.value();
   int _pendingDeliveries = 0;
   String? _uploadBatch;
@@ -401,6 +405,10 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
       case UploadFileFailed(:final batchId, :final fileIndex):
         batches[batchId]?.received[fileIndex] = 0;
         _endBackgroundTaskIfIdle();
+      case PinRejected(:final attemptsLeft):
+        wrongPins = maxPinAttempts - attemptsLeft;
+      case PinLockedOut():
+        pinLockedOut = true;
       case UploadBatchFinished(:final batchId):
         final batch = batches[batchId];
         if (batch != null) {

@@ -47,7 +47,8 @@ void main() {
           in RegExp(r'''(?:src|href|action)\s*=\s*"([^"]*)"''').allMatches(html)) {
         final value = m.group(1)!;
         expect(value, isNot(contains(':')), reason: value);
-        expect(value.startsWith('f/'), isTrue, reason: value);
+        expect(value.startsWith('f/') || value.startsWith('v/'), isTrue,
+            reason: value);
       }
     }
   });

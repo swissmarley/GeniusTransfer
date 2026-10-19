@@ -54,6 +54,19 @@ final class DownloadEnded extends ServerEvent {
   final bool completed;
 }
 
+/// Someone typed a wrong PIN. [attemptsLeft] more are allowed.
+final class PinRejected extends ServerEvent {
+  const PinRejected(this.address, this.attemptsLeft);
+
+  final String address;
+  final int attemptsLeft;
+}
+
+/// Too many wrong PINs: the session lets nobody new in.
+final class PinLockedOut extends ServerEvent {
+  const PinLockedOut();
+}
+
 /// Nothing has happened for the configured idle timeout and no transfer is
 /// running. The host app should end the session.
 final class SessionIdle extends ServerEvent {

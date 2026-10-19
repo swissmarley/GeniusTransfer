@@ -141,6 +141,22 @@ const _en = <String, String>{
           'GeniusTransfer open.',
   'session_ended': 'The other device has stopped sharing.',
 
+  // PIN page, when the other device asks for one.
+  'pin_title': 'Enter the PIN',
+  'pin_body': 'It is shown on the other device.',
+  'pin_label': 'PIN',
+  'pin_button': 'Continue',
+  'pin_wrong_one': 'Wrong PIN. 1 try left.',
+  'pin_wrong_other': 'Wrong PIN. {count} tries left.',
+  'pin_locked':
+      'Too many wrong PINs. Ask the other device to start sharing again.',
+
+  // Saving photos and videos to Photos on an iPhone or iPad.
+  'view_button': 'Open',
+  'ios_photos_hint':
+      'To put a photo or video in Photos: tap Open, then touch and hold the '
+          'photo, or tap Share under the video, and choose Save.',
+
   // Shown for old or wrong links.
   'expired_title': 'This link has expired',
   'expired_body':
