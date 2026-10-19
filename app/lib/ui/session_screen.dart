@@ -9,18 +9,36 @@ import 'package:transfer_server/transfer_server.dart';
 import '../l10n/app_localizations.dart';
 import '../net/lan_address.dart';
 import '../platform/host_platform.dart';
+import '../receive/delivery.dart';
+import '../receive/save_settings.dart';
 import '../session/session_controller.dart';
 import 'format.dart';
 import 'qr_code_view.dart';
+import 'receive_panel.dart';
 import 'send_screen.dart' show FileBadge;
 
 /// The code to scan, live status, and Stop.
 class SessionScreen extends StatefulWidget {
-  const SessionScreen({super.key, required this.files, required this.platform});
+  /// Shares [files].
+  const SessionScreen({super.key, required this.files, required this.platform})
+      : settings = null,
+        stagingDir = null;
+
+  /// Receives files into [stagingDir], then saves them as [settings] say.
+  const SessionScreen.receive({
+    super.key,
+    required this.platform,
+    required SaveSettings this.settings,
+    required Directory this.stagingDir,
+  }) : files = const [];
 
   /// The files to share. The session owns and releases them.
   final List<SharedFile> files;
   final HostPlatform platform;
+  final SaveSettings? settings;
+  final Directory? stagingDir;
+
+  bool get receiving => settings != null;
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -30,6 +48,8 @@ class _SessionScreenState extends State<SessionScreen> {
   SessionController? _controller;
   Timer? _helpTimer;
   bool _popped = false;
+  String? _sheetOfferId;
+  int _errorsShown = 0;
 
   /// Show the "not opening?" help if nobody has connected after this long.
   static const _helpDelay = Duration(seconds: 30);
@@ -39,13 +59,24 @@ class _SessionScreenState extends State<SessionScreen> {
     super.didChangeDependencies();
     if (_controller != null) return;
     final l = AppLocalizations.of(context);
-    final controller = SessionController(
-      files: widget.files,
-      platform: widget.platform,
-      notificationTitle: l.notificationTitle,
-      notificationText: l.notificationText,
-      notificationStop: l.notificationStop,
-    )..addListener(_changed);
+    final settings = widget.settings;
+    final controller = (settings == null
+        ? SessionController.send(
+            files: widget.files,
+            platform: widget.platform,
+            notificationTitle: l.notificationTitle,
+            notificationText: l.notificationText,
+            notificationStop: l.notificationStop,
+          )
+        : SessionController.receive(
+            stagingDir: widget.stagingDir!,
+            delivery: Delivery(platform: widget.platform, settings: settings),
+            platform: widget.platform,
+            notificationTitle: l.notificationReceiveTitle,
+            notificationText: l.notificationText,
+            notificationStop: l.notificationStop,
+          ))
+      ..addListener(_changed);
     _controller = controller;
     unawaited(controller.start());
     _helpTimer = Timer(_helpDelay, () {
@@ -65,7 +96,52 @@ class _SessionScreenState extends State<SessionScreen> {
       Navigator.of(context).pop(c.stopReason);
       return;
     }
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (widget.receiving) _receiveNotices(c);
+    setState(() {});
+  }
+
+  /// Receive mode: the approval sheet and one-off messages.
+  void _receiveNotices(SessionController c) {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final offer = c.pendingOffer;
+    if (offer != null && offer.id != _sheetOfferId) {
+      _sheetOfferId = offer.id;
+      unawaited(_askAboutOffer(c, offer));
+    }
+    if (c.offerExpired) {
+      c.offerExpired = false;
+      messenger.showSnackBar(SnackBar(content: Text(l.offerExpired)));
+    }
+    final finished = c.lastFinished;
+    if (finished != null) {
+      c.lastFinished = null;
+      messenger.showSnackBar(SnackBar(
+          content: Text(l.receiveDoneCount(finished.offer.files.length))));
+    }
+    if (c.deliveryErrors.length > _errorsShown) {
+      _errorsShown = c.deliveryErrors.length;
+      messenger.showSnackBar(SnackBar(
+          content: Text(l.receiveSaveFailed(c.deliveryErrors.last))));
+    }
+  }
+
+  Future<void> _askAboutOffer(SessionController c, UploadOffered offer) async {
+    final accepted = await showModalBottomSheet<bool>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => OfferSheet(controller: c, offer: offer),
+    );
+    if (!mounted || c.pendingOffer?.id != offer.id) return;
+    if (accepted == true) {
+      await c.acceptOffer();
+    } else if (accepted == false) {
+      await c.declineOffer();
+    }
   }
 
   Future<void> _stop() async {
@@ -107,7 +183,9 @@ class _SessionScreenState extends State<SessionScreen> {
               child: TextButton.icon(
                 onPressed: _stop,
                 icon: const Icon(Icons.stop_circle_outlined),
-                label: Text(l.sessionStop),
+                label: Text(widget.receiving
+                    ? l.sessionStopReceiving
+                    : l.sessionStop),
               ),
             ),
           ],
@@ -117,11 +195,19 @@ class _SessionScreenState extends State<SessionScreen> {
             final wide = constraints.maxWidth >= 760;
             final code = _CodePanel(
                 controller: c,
+                receiving: widget.receiving,
                 maxSize: wide
                     ? min(constraints.maxHeight - 220, constraints.maxWidth / 2 - 80)
                     : constraints.maxWidth - 64);
-            final details = _DetailsPanel(
-                controller: c, showHelp: _showHelp, onStop: _stop);
+            final Widget details = widget.receiving
+                ? ReceivePanel(
+                    controller: c,
+                    settings: widget.settings!,
+                    platform: widget.platform,
+                    help: _showHelp ? _Help(desktop: _desktop) : null,
+                    onStop: _stop)
+                : _DetailsPanel(
+                    controller: c, showHelp: _showHelp, onStop: _stop);
             if (wide) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,9 +236,11 @@ class _SessionScreenState extends State<SessionScreen> {
 
 /// The QR code and the typeable address (or why there is none).
 class _CodePanel extends StatelessWidget {
-  const _CodePanel({required this.controller, required this.maxSize});
+  const _CodePanel(
+      {required this.controller, required this.receiving, required this.maxSize});
 
   final SessionController controller;
+  final bool receiving;
   final double maxSize;
 
   @override
@@ -202,7 +290,7 @@ class _CodePanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Text(l.sessionScanHint,
+        Text(receiving ? l.receiveScanHint : l.sessionScanHint,
             textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
         const SizedBox(height: 20),
         Text(l.sessionTypeHint,
@@ -307,7 +395,7 @@ class _DetailsPanel extends StatelessWidget {
         : Platform.isAndroid
             ? l.sessionKeepOpenAndroid
             : l.sessionKeepOpenDesktop;
-    final desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    final desktop = _desktop;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -371,6 +459,19 @@ class _DetailsPanel extends StatelessWidget {
       ],
     );
   }
+}
+
+final _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+
+/// A tinted line of advice with an icon.
+class SessionNote extends StatelessWidget {
+  const SessionNote({super.key, required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => _Note(icon: icon, text: text);
 }
 
 class _Note extends StatelessWidget {

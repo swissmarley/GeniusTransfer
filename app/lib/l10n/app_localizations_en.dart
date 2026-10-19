@@ -23,7 +23,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeReceive => 'Receive files';
 
   @override
-  String get homeReceiveSoon => 'Coming in the next version.';
+  String get homeReceiveHint =>
+      'The other device sends them from its browser. It doesn\'t need this app.';
+
+  @override
+  String get homeSettings => 'Settings';
 
   @override
   String get homeNoNetwork =>
@@ -137,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionStop => 'Stop sharing';
 
   @override
+  String get sessionStopReceiving => 'Stop receiving';
+
+  @override
   String get sessionKeepOpenIos =>
       'Keep this screen open. If you leave the app, transfers pause until you come back.';
 
@@ -199,4 +206,133 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationStop => 'Stop';
+
+  @override
+  String get receiveScanHint =>
+      'Open the camera on the other phone and point it at the code. Then choose the files to send there.';
+
+  @override
+  String receiveReceiving(String name, int percent) {
+    return 'Receiving $name · $percent%';
+  }
+
+  @override
+  String receiveDoneCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files received',
+      one: '1 file received',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String receiveSavedIn(String location) {
+    return 'Received files are saved in $location.';
+  }
+
+  @override
+  String get receiveFolderFellBack =>
+      'Your chosen folder can\'t be used right now, so files were saved in the default folder instead. Check it in Settings.';
+
+  @override
+  String get receiveListTitle => 'Received';
+
+  @override
+  String get receiveNothingYet => 'Nothing received yet.';
+
+  @override
+  String receiveSaveFailed(String detail) {
+    return 'Couldn\'t save $detail';
+  }
+
+  @override
+  String offerTitle(String device, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return '$device wants to send you $_temp0';
+  }
+
+  @override
+  String offerTotal(String size) {
+    return '$size in total';
+  }
+
+  @override
+  String offerMore(int count) {
+    return 'and $count more';
+  }
+
+  @override
+  String get offerAlreadyHere =>
+      'These files have already arrived. Accept to keep them, or decline to delete them.';
+
+  @override
+  String get offerAccept => 'Accept';
+
+  @override
+  String get offerDecline => 'Decline';
+
+  @override
+  String get offerExpired =>
+      'Nobody answered in time, so the files were not accepted. The other device can send them again.';
+
+  @override
+  String get saveToPhotos => 'Save to Photos';
+
+  @override
+  String get savedToPhotos => 'In Photos';
+
+  @override
+  String get photosDenied =>
+      'GeniusTransfer isn\'t allowed to add to Photos. You can allow it in Settings › Privacy & Security › Photos.';
+
+  @override
+  String get showInFinder => 'Show in Finder';
+
+  @override
+  String get showInFolder => 'Show in folder';
+
+  @override
+  String get saveDefaultAndroid =>
+      'Pictures, Movies or Download › GeniusTransfer, by file type';
+
+  @override
+  String get saveDefaultIos =>
+      'Files › On My iPhone › GeniusTransfer › Received';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSaveFolder => 'Save received files in';
+
+  @override
+  String get settingsDefault => 'Default';
+
+  @override
+  String get settingsCustom => 'Chosen folder';
+
+  @override
+  String get settingsChooseFolder => 'Choose a folder…';
+
+  @override
+  String get settingsUseDefault => 'Use the default';
+
+  @override
+  String settingsFolderFailed(String error) {
+    return 'Couldn\'t use that folder: $error';
+  }
+
+  @override
+  String get settingsPhotosNote =>
+      'Photos and videos you receive can also be added to Photos from the list of received files.';
+
+  @override
+  String get notificationReceiveTitle => 'Receiving files';
 }

@@ -1,18 +1,24 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../net/lan_address.dart';
 import '../platform/host_platform.dart';
+import '../receive/delivery.dart' show receiveStagingDir;
+import '../receive/save_settings.dart';
 import '../session/session_controller.dart';
 import 'format.dart';
 import 'send_screen.dart';
+import 'session_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.platform});
+  const HomeScreen({super.key, required this.platform, required this.settings});
 
   final HostPlatform platform;
+  final SaveSettings settings;
 
   Future<void> _send(BuildContext context) async {
     final l = AppLocalizations.of(context);
@@ -25,17 +31,55 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _receive(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    if ((await findLanAddresses()).isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(l.sendNeedsWifi)));
+      return;
+    }
+    if (Platform.isAndroid) {
+      // Shown at a calm moment, before the code; see SendScreen.
+      await platform.requestNotificationPermission();
+    }
+    final staging = await receiveStagingDir();
+    final reason = await navigator.push<StopReason>(MaterialPageRoute(
+      builder: (_) => SessionScreen.receive(
+          platform: platform, settings: settings, stagingDir: staging),
+    ));
+    if (reason == StopReason.idle) {
+      messenger.showSnackBar(SnackBar(content: Text(l.sessionIdleStopped)));
+    }
+  }
+
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => SettingsScreen(settings: settings, platform: platform),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            tooltip: l.homeSettings,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _openSettings(context),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               children: [
                 Text(l.appTitle,
                     style: theme.textTheme.headlineMedium
@@ -55,8 +99,8 @@ class HomeScreen extends StatelessWidget {
                 _BigAction(
                   icon: Icons.download_rounded,
                   title: l.homeReceive,
-                  subtitle: l.homeReceiveSoon,
-                  onTap: null,
+                  subtitle: l.homeReceiveHint,
+                  onTap: () => _receive(context),
                 ),
               ],
             ),

@@ -118,11 +118,17 @@ abstract class AppLocalizations {
   /// **'Receive files'**
   String get homeReceive;
 
-  /// No description provided for @homeReceiveSoon.
+  /// No description provided for @homeReceiveHint.
   ///
   /// In en, this message translates to:
-  /// **'Coming in the next version.'**
-  String get homeReceiveSoon;
+  /// **'The other device sends them from its browser. It doesn\'t need this app.'**
+  String get homeReceiveHint;
+
+  /// No description provided for @homeSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get homeSettings;
 
   /// No description provided for @homeNoNetwork.
   ///
@@ -292,6 +298,12 @@ abstract class AppLocalizations {
   /// **'Stop sharing'**
   String get sessionStop;
 
+  /// No description provided for @sessionStopReceiving.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop receiving'**
+  String get sessionStopReceiving;
+
   /// No description provided for @sessionKeepOpenIos.
   ///
   /// In en, this message translates to:
@@ -393,6 +405,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop'**
   String get notificationStop;
+
+  /// No description provided for @receiveScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the camera on the other phone and point it at the code. Then choose the files to send there.'**
+  String get receiveScanHint;
+
+  /// No description provided for @receiveReceiving.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving {name} · {percent}%'**
+  String receiveReceiving(String name, int percent);
+
+  /// No description provided for @receiveDoneCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file received} other{{count} files received}}'**
+  String receiveDoneCount(int count);
+
+  /// No description provided for @receiveSavedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Received files are saved in {location}.'**
+  String receiveSavedIn(String location);
+
+  /// No description provided for @receiveFolderFellBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Your chosen folder can\'t be used right now, so files were saved in the default folder instead. Check it in Settings.'**
+  String get receiveFolderFellBack;
+
+  /// No description provided for @receiveListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get receiveListTitle;
+
+  /// No description provided for @receiveNothingYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing received yet.'**
+  String get receiveNothingYet;
+
+  /// No description provided for @receiveSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save {detail}'**
+  String receiveSaveFailed(String detail);
+
+  /// No description provided for @offerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{device} wants to send you {count, plural, =1{1 file} other{{count} files}}'**
+  String offerTitle(String device, int count);
+
+  /// No description provided for @offerTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} in total'**
+  String offerTotal(String size);
+
+  /// No description provided for @offerMore.
+  ///
+  /// In en, this message translates to:
+  /// **'and {count} more'**
+  String offerMore(int count);
+
+  /// No description provided for @offerAlreadyHere.
+  ///
+  /// In en, this message translates to:
+  /// **'These files have already arrived. Accept to keep them, or decline to delete them.'**
+  String get offerAlreadyHere;
+
+  /// No description provided for @offerAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get offerAccept;
+
+  /// No description provided for @offerDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get offerDecline;
+
+  /// No description provided for @offerExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody answered in time, so the files were not accepted. The other device can send them again.'**
+  String get offerExpired;
+
+  /// No description provided for @saveToPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Photos'**
+  String get saveToPhotos;
+
+  /// No description provided for @savedToPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'In Photos'**
+  String get savedToPhotos;
+
+  /// No description provided for @photosDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'GeniusTransfer isn\'t allowed to add to Photos. You can allow it in Settings › Privacy & Security › Photos.'**
+  String get photosDenied;
+
+  /// No description provided for @showInFinder.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in Finder'**
+  String get showInFinder;
+
+  /// No description provided for @showInFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in folder'**
+  String get showInFolder;
+
+  /// No description provided for @saveDefaultAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'Pictures, Movies or Download › GeniusTransfer, by file type'**
+  String get saveDefaultAndroid;
+
+  /// No description provided for @saveDefaultIos.
+  ///
+  /// In en, this message translates to:
+  /// **'Files › On My iPhone › GeniusTransfer › Received'**
+  String get saveDefaultIos;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSaveFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Save received files in'**
+  String get settingsSaveFolder;
+
+  /// No description provided for @settingsDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get settingsDefault;
+
+  /// No description provided for @settingsCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen folder'**
+  String get settingsCustom;
+
+  /// No description provided for @settingsChooseFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a folder…'**
+  String get settingsChooseFolder;
+
+  /// No description provided for @settingsUseDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the default'**
+  String get settingsUseDefault;
+
+  /// No description provided for @settingsFolderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t use that folder: {error}'**
+  String settingsFolderFailed(String error);
+
+  /// No description provided for @settingsPhotosNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos you receive can also be added to Photos from the list of received files.'**
+  String get settingsPhotosNote;
+
+  /// No description provided for @notificationReceiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving files'**
+  String get notificationReceiveTitle;
 }
 
 class _AppLocalizationsDelegate

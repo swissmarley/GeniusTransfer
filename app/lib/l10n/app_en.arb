@@ -4,7 +4,8 @@
   "homeSend": "Send files",
   "homeSendHint": "The other device downloads them in its browser. It doesn't need this app.",
   "homeReceive": "Receive files",
-  "homeReceiveSoon": "Coming in the next version.",
+  "homeReceiveHint": "The other device sends them from its browser. It doesn't need this app.",
+  "homeSettings": "Settings",
   "homeNoNetwork": "Not connected to a network. Connect both devices to the same Wi-Fi.",
   "homeNetwork": "{kind} ready · {address}",
   "@homeNetwork": {
@@ -101,6 +102,7 @@
   "sessionFileDone": "Downloaded",
   "sessionFileWaiting": "Not downloaded yet",
   "sessionStop": "Stop sharing",
+  "sessionStopReceiving": "Stop receiving",
   "sessionKeepOpenIos": "Keep this screen open. If you leave the app, transfers pause until you come back.",
   "sessionKeepOpenAndroid": "Keep GeniusTransfer open until the other phone is done.",
   "sessionKeepOpenDesktop": "Keep this window open until the other device is done.",
@@ -124,5 +126,98 @@
   "helpFirewall": "If this computer asks whether GeniusTransfer may accept incoming connections or use the network, choose Allow. On Windows, allow it for private networks.",
   "notificationTitle": "Sharing files",
   "notificationText": "Keep GeniusTransfer open until the other phone is done.",
-  "notificationStop": "Stop"
+  "notificationStop": "Stop",
+  "receiveScanHint": "Open the camera on the other phone and point it at the code. Then choose the files to send there.",
+  "receiveReceiving": "Receiving {name} · {percent}%",
+  "@receiveReceiving": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveDoneCount": "{count, plural, =1{1 file received} other{{count} files received}}",
+  "@receiveDoneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveSavedIn": "Received files are saved in {location}.",
+  "@receiveSavedIn": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "receiveFolderFellBack": "Your chosen folder can't be used right now, so files were saved in the default folder instead. Check it in Settings.",
+  "receiveListTitle": "Received",
+  "receiveNothingYet": "Nothing received yet.",
+  "receiveSaveFailed": "Couldn't save {detail}",
+  "@receiveSaveFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "offerTitle": "{device} wants to send you {count, plural, =1{1 file} other{{count} files}}",
+  "@offerTitle": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offerTotal": "{size} in total",
+  "@offerTotal": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "offerMore": "and {count} more",
+  "@offerMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offerAlreadyHere": "These files have already arrived. Accept to keep them, or decline to delete them.",
+  "offerAccept": "Accept",
+  "offerDecline": "Decline",
+  "offerExpired": "Nobody answered in time, so the files were not accepted. The other device can send them again.",
+  "saveToPhotos": "Save to Photos",
+  "savedToPhotos": "In Photos",
+  "photosDenied": "GeniusTransfer isn't allowed to add to Photos. You can allow it in Settings › Privacy & Security › Photos.",
+  "showInFinder": "Show in Finder",
+  "showInFolder": "Show in folder",
+  "saveDefaultAndroid": "Pictures, Movies or Download › GeniusTransfer, by file type",
+  "saveDefaultIos": "Files › On My iPhone › GeniusTransfer › Received",
+  "settingsTitle": "Settings",
+  "settingsSaveFolder": "Save received files in",
+  "settingsDefault": "Default",
+  "settingsCustom": "Chosen folder",
+  "settingsChooseFolder": "Choose a folder…",
+  "settingsUseDefault": "Use the default",
+  "settingsFolderFailed": "Couldn't use that folder: {error}",
+  "@settingsFolderFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsPhotosNote": "Photos and videos you receive can also be added to Photos from the list of received files.",
+  "notificationReceiveTitle": "Receiving files"
 }

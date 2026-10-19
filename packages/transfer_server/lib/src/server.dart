@@ -115,6 +115,9 @@ class TransferServer {
   /// Downloads in progress.
   int get activeDownloads => _activeDownloads;
 
+  /// Uploads in progress (receive mode).
+  int get activeUploads => _activeUploads;
+
   /// The guest URL for the first address: `http://<ip>:<port>/<TOKEN>/`.
   Uri? get url => _addresses.isEmpty || _port == null
       ? null

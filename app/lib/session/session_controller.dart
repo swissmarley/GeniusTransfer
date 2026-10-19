@@ -9,12 +9,17 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../net/lan_address.dart';
 import '../platform/host_platform.dart';
+import '../receive/delivery.dart';
 import 'selection.dart';
 
 /// True in builds made with `--dart-define=GT_SELFTEST=true`: the app shares
 /// generated test files on launch and logs the session URL, so a device can
 /// be checked end to end from the Mac without touching it.
 const kSelfTest = bool.fromEnvironment('GT_SELFTEST');
+
+/// With [kSelfTest]: `send` (default) shares test files; `receive` starts a
+/// receiving session that accepts every offer and checks what arrives.
+const kSelfTestMode = String.fromEnvironment('GT_SELFTEST_MODE');
 
 enum SessionPhase { starting, active, noNetwork, stopped }
 
@@ -36,19 +41,60 @@ class FileProgress {
       length == 0 ? (done ? 1 : 0) : (bytes / length).clamp(0.0, 1.0);
 }
 
-/// Runs one sharing session: the server, its address, the screen wake lock,
-/// the Android foreground service and the iOS background handling.
+/// One group of files a guest is sending, after the host accepted it.
+class IncomingBatch {
+  IncomingBatch(this.offer)
+      : received = List.filled(offer.files.length, 0),
+        done = List.filled(offer.files.length, false);
+
+  final UploadOffered offer;
+
+  /// Bytes received so far, per file.
+  final List<int> received;
+  final List<bool> done;
+  bool finished = false;
+}
+
+/// Runs one session: the server, its address, the screen wake lock, the
+/// Android foreground service and the iOS background handling. Sends the
+/// given files, or receives files the guest chooses.
 class SessionController extends ChangeNotifier with WidgetsBindingObserver {
-  SessionController({
+  /// Shares [files]: the guest downloads them.
+  SessionController.send({
     required List<SharedFile> files,
     required this.platform,
     required this.notificationTitle,
     required this.notificationText,
     required this.notificationStop,
-  })  : server = TransferServer(files: files),
-        progress = [for (final f in files) FileProgress(f.length)];
+  })  : mode = SessionMode.send,
+        server = TransferServer(files: files),
+        progress = [for (final f in files) FileProgress(f.length)],
+        delivery = null,
+        stagingDir = null;
 
+  /// Receives files: the guest uploads them into [stagingDir], and the host
+  /// accepts each batch. [delivery] moves them to their final place.
+  SessionController.receive({
+    required Directory this.stagingDir,
+    required Delivery this.delivery,
+    required this.platform,
+    required this.notificationTitle,
+    required this.notificationText,
+    required this.notificationStop,
+  })  : mode = SessionMode.receive,
+        server = TransferServer(
+          mode: SessionMode.receive,
+          receiveOptions: ReceiveOptions(
+            stagingDir: stagingDir,
+            freeBytes: () => platform.freeBytes(stagingDir.path),
+          ),
+        ),
+        progress = const [];
+
+  final SessionMode mode;
   final TransferServer server;
+  final Delivery? delivery;
+  final Directory? stagingDir;
   final HostPlatform platform;
   final String notificationTitle;
   final String notificationText;
@@ -56,6 +102,29 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// One entry per shared file, same order as [files].
   final List<FileProgress> progress;
+
+  /// Receive mode: the offer waiting for the host to accept or decline.
+  UploadOffered? pendingOffer;
+
+  /// Receive mode: an offer expired before anyone answered it (shown once).
+  bool offerExpired = false;
+
+  /// Receive mode: accepted batches, by id.
+  final batches = <String, IncomingBatch>{};
+
+  /// Receive mode: files in their final place, newest first.
+  final received = <ReceivedFile>[];
+
+  /// Receive mode: files that arrived but could not be saved, with why.
+  final deliveryErrors = <String>[];
+
+  /// Receive mode: the latest batch that finished, for a short message.
+  IncomingBatch? lastFinished;
+
+  Future<void> _deliveries = Future.value();
+  int _pendingDeliveries = 0;
+  String? _uploadBatch;
+  int? _uploadIndex;
 
   /// Guests seen so far, by IP address.
   final guests = <String, GuestDevice>{};
@@ -114,8 +183,53 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
 
   int get doneCount => progress.where((p) => p.done).length;
 
+  /// Receive mode: the upload shown in the status line.
+  ({String name, double fraction})? get currentUpload {
+    final batch = batches[_uploadBatch];
+    final i = _uploadIndex;
+    if (batch == null || i == null || batch.done[i]) return null;
+    final file = batch.offer.files[i];
+    return (
+      name: file.name,
+      fraction:
+          file.size == 0 ? 1.0 : (batch.received[i] / file.size).clamp(0.0, 1.0),
+    );
+  }
+
+  /// Receive mode: accepts [pendingOffer]; the guest starts sending.
+  Future<void> acceptOffer() async {
+    final offer = pendingOffer;
+    if (offer == null) return;
+    pendingOffer = null;
+    // Quarantined files are moved in during approval, with events, so the
+    // batch must exist first.
+    batches[offer.id] = IncomingBatch(offer);
+    notifyListeners();
+    if (!await server.approveUpload(offer.id)) {
+      batches.remove(offer.id);
+      offerExpired = true;
+    }
+    notifyListeners();
+  }
+
+  /// Receive mode: refuses [pendingOffer].
+  Future<void> declineOffer() async {
+    final offer = pendingOffer;
+    if (offer == null) return;
+    pendingOffer = null;
+    notifyListeners();
+    await server.declineUpload(offer.id);
+  }
+
   Future<void> start() async {
     WidgetsBinding.instance.addObserver(this);
+    final staging = stagingDir;
+    if (staging != null) {
+      // Leftovers from a session that did not end cleanly.
+      if (await staging.exists()) await staging.delete(recursive: true);
+      await staging.create(recursive: true);
+      await platform.requestStoragePermission();
+    }
     platform
       ..onStopRequested = (() => stop(StopReason.notification))
       ..onBackgroundTimeExpired = _onBackgroundTimeExpired;
@@ -206,7 +320,11 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     _inBackground = true;
     await platform.beginBackgroundTask();
     await server.suspend();
-    if (server.activeDownloads == 0) await platform.endBackgroundTask();
+    if (server.activeDownloads == 0 &&
+        server.activeUploads == 0 &&
+        _pendingDeliveries == 0) {
+      await platform.endBackgroundTask();
+    }
   }
 
   void _onBackgroundTimeExpired() {
@@ -253,22 +371,94 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
         if (_lastDownloadId == event.id) {
           _lastDownloadId = _downloads.keys.isEmpty ? null : _downloads.keys.last;
         }
-        if (_inBackground && server.activeDownloads == 0) {
-          unawaited(platform.endBackgroundTask());
-        }
+        _endBackgroundTaskIfIdle();
       case SessionIdle():
         unawaited(stop(StopReason.idle));
         return;
-      // Receiving is not wired up in the app yet (M2b).
-      case UploadOffered() ||
-            UploadOfferExpired() ||
-            UploadProgress() ||
-            UploadFileReceived() ||
-            UploadFileFailed() ||
-            UploadBatchFinished():
-        return;
+      case UploadOffered():
+        pendingOffer = event;
+        offerExpired = false;
+        if (kSelfTest) unawaited(acceptOffer());
+      case UploadOfferExpired(:final id):
+        if (pendingOffer?.id == id) {
+          pendingOffer = null;
+          offerExpired = true;
+        }
+      case UploadProgress(:final batchId, :final fileIndex, :final received):
+        final batch = batches[batchId];
+        if (batch == null) return;
+        batch.received[fileIndex] = received;
+        _uploadBatch = batchId;
+        _uploadIndex = fileIndex;
+      case UploadFileReceived(:final batchId, :final fileIndex):
+        final batch = batches[batchId];
+        if (batch != null) {
+          batch.done[fileIndex] = true;
+          batch.received[fileIndex] = event.size;
+        }
+        _queueDelivery(event);
+        _endBackgroundTaskIfIdle();
+      case UploadFileFailed(:final batchId, :final fileIndex):
+        batches[batchId]?.received[fileIndex] = 0;
+        _endBackgroundTaskIfIdle();
+      case UploadBatchFinished(:final batchId):
+        final batch = batches[batchId];
+        if (batch != null) {
+          batch.finished = true;
+          lastFinished = batch;
+        }
     }
     notifyListeners();
+  }
+
+  void _endBackgroundTaskIfIdle() {
+    if (_inBackground &&
+        server.activeDownloads == 0 &&
+        server.activeUploads == 0 &&
+        _pendingDeliveries == 0) {
+      unawaited(platform.endBackgroundTask());
+    }
+  }
+
+  /// Moves arrived files to their final place one at a time, so names are
+  /// chosen without races.
+  void _queueDelivery(UploadFileReceived event) {
+    final delivery = this.delivery;
+    if (delivery == null) return;
+    _pendingDeliveries++;
+    _deliveries = _deliveries.then((_) async {
+      try {
+        if (kSelfTest) await _selfTestCheck(event);
+        final file = await delivery.deliver(event.file, event.name);
+        received.insert(0, file);
+        if (kSelfTest) {
+          debugPrint('GT_SELFTEST_SAVED=${file.name}|${file.size}|'
+              '${file.location}|${file.path ?? file.uri}');
+        }
+      } catch (e) {
+        debugPrint('Could not save ${event.name}: $e');
+        deliveryErrors.add('${event.name}: $e');
+      } finally {
+        _pendingDeliveries--;
+        _endBackgroundTaskIfIdle();
+        notifyListeners();
+      }
+    });
+  }
+
+  /// Self-test only: the checker uploads files whose byte i is
+  /// `(i * 31 + 7) & 0xff`; check that they arrived intact.
+  Future<void> _selfTestCheck(UploadFileReceived event) async {
+    var offset = 0;
+    var ok = true;
+    await for (final chunk in event.file.openRead()) {
+      for (var i = 0; i < chunk.length && ok; i++) {
+        if (chunk[i] != ((offset + i) * 31 + 7) & 0xff) ok = false;
+      }
+      offset += chunk.length;
+    }
+    debugPrint('GT_SELFTEST_RECEIVED=${event.name}|$offset|'
+        '${ok && offset == event.size ? 'ok' : 'BAD'}');
   }
 
   void _advance(int id, int sent, {required bool completed}) {
@@ -293,6 +483,16 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
       ..onBackgroundTimeExpired = null;
     await _events?.cancel();
     await server.stop();
+    // Finish saving what arrived, then forget the staging folder.
+    await _deliveries;
+    final staging = stagingDir;
+    if (staging != null) {
+      try {
+        if (await staging.exists()) await staging.delete(recursive: true);
+      } catch (e) {
+        debugPrint('Could not delete the staging folder: $e');
+      }
+    }
     await platform.stopSessionService();
     await platform.endBackgroundTask();
     await WakelockPlus.disable();
