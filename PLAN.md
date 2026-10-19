@@ -1,6 +1,6 @@
 # GeniusTransfer: Plan (Milestone 0)
 
-Status: **draft for your approval.** No app code has been written yet.
+Status: **approved 2026-10-19** (decisions in §10). Milestone 1 is in progress.
 Date of research: 2026-10-11. Versions current at that date: iOS 27 (test iPhones on 26.5 and 26.6), Chrome 154, Flutter 3.47.7. Android 17's behavior changes are documented.
 
 How sure each claim is:
@@ -30,10 +30,7 @@ Source links are in [Appendix A](#appendix-a-sources).
      - Without one, Android freezes the app about 70 seconds after the user switches away, and on Android 15+ it closes the connections that are still open.
      - Decision: a minimal native `connectedDevice` foreground service whenever a session is active, from M1 (§3.2).
      - Also, **Android 17 makes accepting incoming connections a runtime permission** for apps that target SDK 37 [V]. We target SDK 36 for now and plan for the permission (§3.2).
-3. **Things you need to decide are in §10**, with a recommendation for each. The biggest ones:
-   - where received files are saved;
-   - whether to offer "Download all as ZIP";
-   - whether I may install Flutter and the Android tools on this Mac with Homebrew.
+3. **Your decisions are recorded in §10.**
 
 ---
 
@@ -595,15 +592,16 @@ These run on the Mac with `dart test` in `packages/transfer_server`, using real 
 
 ## 8. Build and run
 
-### 8.1 One-time toolchain setup (needs your OK; see §10)
+### 8.1 Toolchain (set up 2026-10-19)
 
-Missing on this Mac:
+| Tool | Where | Notes |
+|---|---|---|
+| Flutter 3.47.7 / Dart 3.13.5 | Homebrew cask `flutter` | Tool analytics turned off (`flutter --disable-analytics`, `dart --disable-analytics`) |
+| JDK 17 | Homebrew `openjdk@17` (keg-only) | Set with `flutter config --jdk-dir /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` |
+| Android SDK | Homebrew cask `android-commandlinetools` → `/opt/homebrew/share/android-commandlinetools` | Licenses accepted with your OK. platform-tools 37.0.1, platform android-36, build-tools 36.1.0. Set with `flutter config --android-sdk …` |
+| Xcode 27.0, CocoaPods 1.17 | Already present | `flutter doctor`: no issues. Swift Package Manager integration is on by default |
 
-- **Flutter 3.47.x:** Homebrew `flutter` cask, or a git clone of the stable branch.
-- **JDK 17:** Homebrew `temurin@17`.
-- **Android command-line tools:** Homebrew `android-commandlinetools`, then `sdkmanager` installs platform-tools, a platform and build-tools. The total is roughly 5–8 GB.
-
-Already present: Xcode 27, CocoaPods. **[T]:** check that Flutter 3.47 supports Xcode 27 and the iOS 27 SDK.
+`adb` lives at `/opt/homebrew/share/android-commandlinetools/platform-tools/adb`. The scripts in `tool/` use that path, so nothing needs adding to your PATH.
 
 ### 8.2 iPhone with a free Apple ID: the weekly reinstall
 
@@ -630,7 +628,7 @@ Each milestone ends with a stop, a demo, a commit, and a device checklist.
 | M | Scope | Done when |
 |---|---|---|
 | **1** | `transfer_server` with the token gate, guest send page, streaming + Range + HEAD, and tests. App: pick files (Android: own picker + file descriptor), session screen with QR and URL, IP detection, wake lock, iOS listener restart on resume, Android foreground service, 30-second help card, Stop. Both hosts | All of these download over the same Wi-Fi: a JPG, a HEIC, a ≥1 GB MP4 and a PDF, from Android host → iPhone guest and from iPhone host → Android guest. Real download locations and Chrome's warnings are recorded and put into the page text |
-| **2** | Upload: offer → approval → raw upload with progress, no-JS multipart fallback, sanitizer, limits, saving to the chosen locations, tests | An iPhone guest (Photos picker *and* Files) and an Android guest upload. Format, metadata and size are recorded against the originals |
+| **2** | Upload: offer → approval → raw upload with progress, no-JS multipart fallback, sanitizer, limits, saving to the default locations or a custom folder the user picks (§10), tests | An iPhone guest (Photos picker *and* Files) and an Android guest upload. Format, metadata and size are recorded against the originals |
 | **3** | Mode 2: Android local-only hotspot + Wi-Fi QR → URL QR. iPhone guided fallbacks A and B. Tests on Wi-Fi without internet | Both directions work with mobile data off on both phones |
 | **4** | Android share sheet, progress polish on both sides, PIN, approval UX polish, clear errors, iPhone guest "Save to Photos" link, received-files actions | Error paths have been walked through on devices |
 | **5** | `TESTING.md`: the field-test script with timing sheet and failure-step log, plus a manual checklist per platform | You can run the 5-person test from it |
@@ -639,28 +637,20 @@ Basic upload approval ships in M2, not M4, because uploads without approval woul
 
 ---
 
-## 10. Open questions for you
+## 10. Decisions (answered 2026-10-19)
 
-Each has my recommendation.
-
-1. **Toolchain:** may I install Flutter, JDK 17 and the Android command-line tools with Homebrew (about 5–8 GB)? *Recommend: yes.*
-2. **Name and iOS bundle ID:** "GeniusTransfer" and `com.<yourname>.geniustransfer`? A free team needs a bundle ID nobody else has used.
-3. **Test devices:** which Android phones do you have (model and Android version)? Can one be plugged into this Mac for M1? Is there an old Android 8/9 phone or an older iPhone for guest testing?
-4. **Where received files go.** *Recommend:*
-   - **Android:** photos and videos to `Pictures/GeniusTransfer` and `Movies/GeniusTransfer`, so they show up in Gallery and Photos; everything else to `Download/GeniusTransfer`.
-   - **iOS:** the app's folder in Files (*On My iPhone › GeniusTransfer*), plus a *Save to Photos* button for images and videos.
-5. **"Download all as ZIP" for guests?** *Recommend: not in M1.* Per-file buttons first. Reconsider after M1 testing, since a ZIP triggers Chrome's warning and on iPhone it arrives as a ZIP that has to be opened.
-6. **HEIC to Android guests:** offer an automatic JPEG copy when the guest is Android? JPEG avoids Chrome's warning, and old Android can't open HEIC. *Recommend: M4, iPhone host only, as an extra "Compatible (JPG)" button next to the original.*
-7. **Foreground service on Android:** decided yes. It's a native `connectedDevice` service with no time limit, shipping in M1 (§3.2). Without it the server freezes about 70 seconds after the host switches apps. It shows an ongoing "Sharing" notification. OK?
-8. **Defaults:**
-   - PIN off;
-   - approval always on, and not configurable;
-   - upload limit 20 GB per batch, capped by free space minus 1 GB;
-   - inactivity timeout 30 minutes.
-   
-   OK?
-9. **Mode 2 on iPhone host:** keep both A (guest hotspot) and B (Personal Hotspot), and decide the order after M3 testing? *Recommend: yes.*
-10. **Field-test baseline:** comparing against Google Drive needs internet. Should the Drive timing be measured separately with data on, using the same file and the same people?
+| # | Question | Decision |
+|---|---|---|
+| 1 | Toolchain | Install Flutter only. The JDK and the Android command-line tools were already there. You approved accepting the Android SDK licenses and installing the SDK packages (§8.1) |
+| 2 | Name and bundle ID | **GeniusTransfer**, with bundle ID / applicationId **`com.nakya.geniustransfer`**. It's set in one place per platform, so it's easy to change if Apple says the ID is taken. iOS signing uses your free *Personal Team* |
+| 3 | Test devices | **New Samsung tablet** as the main Android device, plugged into this Mac for M1. **Old Android phone** as a guest. iPhones on iOS 26.5 and 26.6. The app must lay out well on a tablet |
+| 4 | Where received files go | As recommended (Android: `Pictures`/`Movies`/`Download` › `GeniusTransfer`; iOS: the app's Files folder + *Save to Photos*), **plus a user-chosen custom folder** (M2). Android: the system folder picker (`ACTION_OPEN_DOCUMENT_TREE` with a persistable permission), writing through `DocumentsContract`. iOS: `UIDocumentPickerViewController` for folders, with a security-scoped bookmark. If the chosen folder becomes unavailable, fall back to the default and say so |
+| 5 | ZIP for guests | Not in M1. Per-file buttons first |
+| 6 | HEIC → JPG for Android guests | Yes, M4, iPhone host only, as an extra "Compatible (JPG)" button |
+| 7 | Defaults | PIN off; approval always on; upload limit 20 GB per batch, capped by free space minus 1 GB; inactivity timeout 30 minutes |
+| 8 | Google Drive baseline | Not measured separately |
+| — | Foreground service on Android | Yes, `connectedDevice`, from M1 (no objection) |
+| — | Mode 2 order on iPhone host | Keep both A and B, and decide the order after M3 tests (no objection) |
 
 ---
 
