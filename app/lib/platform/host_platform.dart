@@ -65,6 +65,40 @@ class FolderUnavailableException implements Exception {
   String toString() => message;
 }
 
+/// A Wi-Fi network this phone created for the guest to join.
+class HotspotInfo {
+  const HotspotInfo({required this.ssid, required this.password});
+
+  final String ssid;
+
+  /// Null for an open network.
+  final String? password;
+}
+
+/// Why the hotspot could not be started.
+enum HotspotFailure {
+  /// The user refused the permission it needs.
+  permission,
+
+  /// Android 8–12: Location is off, and the system requires it.
+  locationOff,
+
+  /// The phone's own hotspot or tethering is on.
+  tetheringOn,
+
+  /// Anything else (no channel available, not allowed, Wi-Fi problem).
+  failed,
+}
+
+class HotspotException implements Exception {
+  const HotspotException(this.failure, [this.message]);
+  final HotspotFailure failure;
+  final String? message;
+
+  @override
+  String toString() => 'HotspotException(${failure.name}, $message)';
+}
+
 /// The native side of the app: our own small Kotlin and Swift code.
 class HostPlatform {
   HostPlatform() {
@@ -74,6 +108,8 @@ class HostPlatform {
           onStopRequested?.call();
         case 'backgroundTimeExpired':
           onBackgroundTimeExpired?.call();
+        case 'hotspotStopped':
+          onHotspotStopped?.call();
       }
     });
   }
@@ -85,6 +121,9 @@ class HostPlatform {
 
   /// iOS: the extra background time is about to run out.
   void Function()? onBackgroundTimeExpired;
+
+  /// Android: the system turned our hotspot off.
+  void Function()? onHotspotStopped;
 
   /// Android: opens the system photo picker (photos and videos).
   Future<List<AndroidPickedFile>> pickMedia() => _pick('pickMedia');
@@ -199,6 +238,43 @@ class HostPlatform {
   Future<void> revealInFinder(String path) async {
     if (Platform.isMacOS) {
       await _channel.invokeMethod<void>('revealInFinder', {'path': path});
+    }
+  }
+
+  /// Android: whether this phone can create a hotspot for the guest
+  /// (Android 8 and later can; other platforms cannot).
+  bool get canStartHotspot => Platform.isAndroid;
+
+  /// Android: creates a local-only hotspot (no internet sharing) and returns
+  /// its name and password. Asks for the permission it needs first. Throws
+  /// [HotspotException].
+  Future<HotspotInfo> startHotspot() async {
+    try {
+      final m = await _channel.invokeMapMethod<Object?, Object?>('startHotspot');
+      return HotspotInfo(
+          ssid: m!['ssid'] as String, password: m['password'] as String?);
+    } on PlatformException catch (e) {
+      throw HotspotException(
+        switch (e.code) {
+          'permission' => HotspotFailure.permission,
+          'location_off' => HotspotFailure.locationOff,
+          'tethering_on' => HotspotFailure.tetheringOn,
+          _ => HotspotFailure.failed,
+        },
+        e.message,
+      );
+    }
+  }
+
+  /// Android: turns the hotspot off again.
+  Future<void> stopHotspot() async {
+    if (Platform.isAndroid) await _channel.invokeMethod<void>('stopHotspot');
+  }
+
+  /// Android: opens the system Location settings.
+  Future<void> openLocationSettings() async {
+    if (Platform.isAndroid) {
+      await _channel.invokeMethod<void>('openLocationSettings');
     }
   }
 

@@ -125,6 +125,23 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   int wrongPins = 0;
   bool pinLockedOut = false;
 
+  /// Android: the Wi-Fi network this phone created, while it is on.
+  HotspotInfo? hotspot;
+
+  /// Which code to show while the hotspot is on: 1 = join the Wi-Fi,
+  /// 2 = open the page.
+  int hotspotStep = 1;
+  bool startingHotspot = false;
+
+  /// Why the last attempt to start the hotspot failed.
+  HotspotFailure? hotspotFailure;
+
+  /// The system turned the hotspot off (shown once).
+  bool hotspotLost = false;
+
+  /// The hotspot's own address on this phone, once its interface is up.
+  LanAddress? _hotspotAddress;
+
   Future<void> _deliveries = Future.value();
   int _pendingDeliveries = 0;
   String? _uploadBatch;
@@ -236,7 +253,8 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     }
     platform
       ..onStopRequested = (() => stop(StopReason.notification))
-      ..onBackgroundTimeExpired = _onBackgroundTimeExpired;
+      ..onBackgroundTimeExpired = _onBackgroundTimeExpired
+      ..onHotspotStopped = _onHotspotStopped;
     _events = server.events.listen(_onEvent);
     try {
       await WakelockPlus.enable();
@@ -263,10 +281,78 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _listenOn(List<LanAddress> found) async {
     await server.start([for (final a in found) a.address]);
     addresses = found;
-    if (shown == null || !found.contains(shown)) shown = found.first;
+    if (hotspot != null && _hotspotAddress == null) {
+      _hotspotAddress =
+          found.where((a) => a.kind == LanKind.hotspot).firstOrNull;
+    }
+    final hotspotAddress = _hotspotAddress;
+    if (hotspotAddress != null && found.contains(hotspotAddress)) {
+      // The guest is joining our hotspot: that is the address it can reach.
+      shown = hotspotAddress;
+    } else if (shown == null || !found.contains(shown)) {
+      shown = found.first;
+    }
     phase = SessionPhase.active;
     activeSince ??= DateTime.now();
     if (kSelfTest) debugPrint('GT_SELFTEST_URL=$url');
+  }
+
+  /// Android: creates a Wi-Fi network for the guest to join, for when the
+  /// two devices share none. The code then shows in two steps: join the
+  /// Wi-Fi, then open the page.
+  Future<void> startHotspot() async {
+    if (hotspot != null || startingHotspot || phase == SessionPhase.stopped) {
+      return;
+    }
+    startingHotspot = true;
+    hotspotFailure = null;
+    hotspotLost = false;
+    notifyListeners();
+    try {
+      final before = (await findLanAddresses()).toSet();
+      try {
+        hotspot = await platform.startHotspot();
+      } on HotspotException catch (e) {
+        debugPrint('Hotspot failed: $e');
+        hotspotFailure = e.failure;
+        return;
+      }
+      hotspotStep = 1;
+      // Its interface takes a moment to get an address; the regular
+      // address check would find it too, but only after a few seconds.
+      for (var i = 0; i < 40; i++) {
+        if (phase == SessionPhase.stopped || hotspot == null) return;
+        final found = await findLanAddresses();
+        final fresh = found.where((a) => !before.contains(a)).toList();
+        if (fresh.isNotEmpty) {
+          _hotspotAddress = fresh.firstWhere(
+              (a) => a.kind == LanKind.hotspot,
+              orElse: () => fresh.first);
+          await _listenOn(found);
+          return;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+    } catch (e) {
+      debugPrint('Hotspot address not found: $e');
+    } finally {
+      startingHotspot = false;
+      notifyListeners();
+    }
+  }
+
+  /// Switches between the two codes shown while the hotspot is on.
+  void showHotspotStep(int step) {
+    hotspotStep = step;
+    notifyListeners();
+  }
+
+  void _onHotspotStopped() {
+    if (hotspot == null) return;
+    hotspot = null;
+    _hotspotAddress = null;
+    hotspotLost = true;
+    notifyListeners();
   }
 
   /// Puts [address] in the QR code instead.
@@ -488,9 +574,14 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     platform
       ..onStopRequested = null
-      ..onBackgroundTimeExpired = null;
+      ..onBackgroundTimeExpired = null
+      ..onHotspotStopped = null;
     await _events?.cancel();
     await server.stop();
+    if (hotspot != null) {
+      hotspot = null;
+      await platform.stopHotspot();
+    }
     // Finish saving what arrived, then forget the staging folder.
     await _deliveries;
     final staging = stagingDir;

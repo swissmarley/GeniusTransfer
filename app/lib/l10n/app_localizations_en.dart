@@ -183,7 +183,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpIsolation =>
-      'Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a phone\'s hotspot. A built-in hotspot mode is coming in a later version.';
+      'Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a hotspot.';
 
   @override
   String get helpStayConnected =>
@@ -335,4 +335,147 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationReceiveTitle => 'Receiving files';
+
+  @override
+  String get hotspotStart => 'Start a hotspot on this phone';
+
+  @override
+  String get hotspotStarting => 'Starting the hotspot…';
+
+  @override
+  String get hotspotStep1Title => 'Step 1 of 2: join this phone\'s Wi-Fi';
+
+  @override
+  String get hotspotStep1Hint =>
+      'On the other phone, open the camera, scan this code and tap Join. Or join this network in its Wi-Fi settings.';
+
+  @override
+  String hotspotNetwork(String ssid) {
+    return 'Network: $ssid';
+  }
+
+  @override
+  String hotspotPassword(String password) {
+    return 'Password: $password';
+  }
+
+  @override
+  String get hotspotNext => 'Joined? Show the second code';
+
+  @override
+  String get hotspotStep2Title => 'Step 2 of 2: scan to open the page';
+
+  @override
+  String get hotspotBack => 'Show the Wi-Fi code again';
+
+  @override
+  String get hotspotNoInternet =>
+      'The other phone may warn that this Wi-Fi has no internet. That\'s expected: if it asks, choose to stay connected.';
+
+  @override
+  String get hotspotLost =>
+      'The hotspot was turned off. Start it again, or connect both devices to the same Wi-Fi.';
+
+  @override
+  String get hotspotFailedPermission =>
+      'GeniusTransfer needs the Nearby devices (or Location) permission to create a hotspot. Allow it and try again.';
+
+  @override
+  String get hotspotFailedLocation =>
+      'Turn on Location first: this version of Android requires it to create a hotspot.';
+
+  @override
+  String get hotspotOpenLocation => 'Open Location settings';
+
+  @override
+  String get hotspotFailedTethering =>
+      'Turn off this phone\'s own hotspot or tethering first, then try again.';
+
+  @override
+  String get hotspotFailed =>
+      'Couldn\'t start the hotspot. Make sure Wi-Fi is on and try again, or use the other phone\'s hotspot.';
+
+  @override
+  String get noNetworkTitle => 'No Wi-Fi here';
+
+  @override
+  String get noNetworkHotspotBody =>
+      'This phone can create its own Wi-Fi network for the other phone to join. Nothing goes through the internet.';
+
+  @override
+  String get noNetworkOtherWays => 'Other ways to connect';
+
+  @override
+  String get noNetworkCancel => 'Cancel';
+
+  @override
+  String get helpStartHotspot => 'Start a hotspot instead';
+
+  @override
+  String get guideTitle => 'No shared Wi-Fi?';
+
+  @override
+  String get guideIntro =>
+      'Both devices need to be on the same network. Without a Wi-Fi network, one of the phones can make one with its hotspot. No internet is used.';
+
+  @override
+  String get guideOtherHotspotTitle => 'Use the other phone\'s hotspot';
+
+  @override
+  String get guideOtherHotspotStep1 =>
+      'On the other phone, turn on its hotspot. iPhone: Settings › Personal Hotspot › Allow Others to Join. Android: Settings › Connections or Network › Hotspot.';
+
+  @override
+  String get guideOtherHotspotStep2Iphone =>
+      'On this iPhone, open Settings › Wi-Fi and join that network.';
+
+  @override
+  String get guideOtherHotspotStep2Android =>
+      'On this phone, open the Wi-Fi settings and join that network.';
+
+  @override
+  String get guideOtherHotspotStep2Computer =>
+      'On this computer, join that Wi-Fi network.';
+
+  @override
+  String get guideOtherHotspotStep3 =>
+      'Come back here. The code updates by itself; scan it with the other phone.';
+
+  @override
+  String get guideOwnHotspotTitle => 'Use this iPhone\'s Personal Hotspot';
+
+  @override
+  String get guideOwnHotspotStep1 =>
+      'Open Settings › Personal Hotspot and turn on Allow Others to Join. Your mobile plan must include it.';
+
+  @override
+  String get guideOwnHotspotStep2 =>
+      'On the other phone, join this iPhone\'s Wi-Fi network. To let it scan a code instead of typing the password, save the name and password below.';
+
+  @override
+  String get guideOwnHotspotStep3 =>
+      'When the other phone has joined, the code here updates. Scan it with the other phone.';
+
+  @override
+  String get guideHotspotName => 'Hotspot name';
+
+  @override
+  String get guideHotspotPassword => 'Hotspot password';
+
+  @override
+  String get guideHotspotSave => 'Save';
+
+  @override
+  String get guideHotspotSavedNote => 'Saved only on this iPhone.';
+
+  @override
+  String get guideHotspotScan =>
+      'Scan this with the other phone\'s camera to join this iPhone\'s hotspot.';
+
+  @override
+  String get guideAndroidTitle => 'Use this phone\'s hotspot';
+
+  @override
+  String get guideAndroidBody =>
+      'This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code.';
 }

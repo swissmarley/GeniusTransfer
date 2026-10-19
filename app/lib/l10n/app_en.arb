@@ -120,7 +120,7 @@
   "sessionFiles": "Files",
   "helpTitle": "Not opening on the other phone?",
   "helpSameWifi": "Both phones must be on the same Wi-Fi network.",
-  "helpIsolation": "Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a phone's hotspot. A built-in hotspot mode is coming in a later version.",
+  "helpIsolation": "Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a hotspot.",
   "helpStayConnected": "If the other phone says the Wi-Fi has no internet and asks to stay connected, tap Yes, or turn off its mobile data.",
   "helpTypeAddress": "No QR scanner? Type the address shown under the code into the browser. Capital letters and dashes are optional.",
   "helpFirewall": "If this computer asks whether GeniusTransfer may accept incoming connections or use the network, choose Allow. On Windows, allow it for private networks.",
@@ -219,5 +219,59 @@
     }
   },
   "settingsPhotosNote": "Photos and videos you receive can also be added to Photos from the list of received files.",
-  "notificationReceiveTitle": "Receiving files"
+  "notificationReceiveTitle": "Receiving files",
+  "hotspotStart": "Start a hotspot on this phone",
+  "hotspotStarting": "Starting the hotspot…",
+  "hotspotStep1Title": "Step 1 of 2: join this phone's Wi-Fi",
+  "hotspotStep1Hint": "On the other phone, open the camera, scan this code and tap Join. Or join this network in its Wi-Fi settings.",
+  "hotspotNetwork": "Network: {ssid}",
+  "@hotspotNetwork": {
+    "placeholders": {
+      "ssid": {
+        "type": "String"
+      }
+    }
+  },
+  "hotspotPassword": "Password: {password}",
+  "@hotspotPassword": {
+    "placeholders": {
+      "password": {
+        "type": "String"
+      }
+    }
+  },
+  "hotspotNext": "Joined? Show the second code",
+  "hotspotStep2Title": "Step 2 of 2: scan to open the page",
+  "hotspotBack": "Show the Wi-Fi code again",
+  "hotspotNoInternet": "The other phone may warn that this Wi-Fi has no internet. That's expected: if it asks, choose to stay connected.",
+  "hotspotLost": "The hotspot was turned off. Start it again, or connect both devices to the same Wi-Fi.",
+  "hotspotFailedPermission": "GeniusTransfer needs the Nearby devices (or Location) permission to create a hotspot. Allow it and try again.",
+  "hotspotFailedLocation": "Turn on Location first: this version of Android requires it to create a hotspot.",
+  "hotspotOpenLocation": "Open Location settings",
+  "hotspotFailedTethering": "Turn off this phone's own hotspot or tethering first, then try again.",
+  "hotspotFailed": "Couldn't start the hotspot. Make sure Wi-Fi is on and try again, or use the other phone's hotspot.",
+  "noNetworkTitle": "No Wi-Fi here",
+  "noNetworkHotspotBody": "This phone can create its own Wi-Fi network for the other phone to join. Nothing goes through the internet.",
+  "noNetworkOtherWays": "Other ways to connect",
+  "noNetworkCancel": "Cancel",
+  "helpStartHotspot": "Start a hotspot instead",
+  "guideTitle": "No shared Wi-Fi?",
+  "guideIntro": "Both devices need to be on the same network. Without a Wi-Fi network, one of the phones can make one with its hotspot. No internet is used.",
+  "guideOtherHotspotTitle": "Use the other phone's hotspot",
+  "guideOtherHotspotStep1": "On the other phone, turn on its hotspot. iPhone: Settings › Personal Hotspot › Allow Others to Join. Android: Settings › Connections or Network › Hotspot.",
+  "guideOtherHotspotStep2Iphone": "On this iPhone, open Settings › Wi-Fi and join that network.",
+  "guideOtherHotspotStep2Android": "On this phone, open the Wi-Fi settings and join that network.",
+  "guideOtherHotspotStep2Computer": "On this computer, join that Wi-Fi network.",
+  "guideOtherHotspotStep3": "Come back here. The code updates by itself; scan it with the other phone.",
+  "guideOwnHotspotTitle": "Use this iPhone's Personal Hotspot",
+  "guideOwnHotspotStep1": "Open Settings › Personal Hotspot and turn on Allow Others to Join. Your mobile plan must include it.",
+  "guideOwnHotspotStep2": "On the other phone, join this iPhone's Wi-Fi network. To let it scan a code instead of typing the password, save the name and password below.",
+  "guideOwnHotspotStep3": "When the other phone has joined, the code here updates. Scan it with the other phone.",
+  "guideHotspotName": "Hotspot name",
+  "guideHotspotPassword": "Hotspot password",
+  "guideHotspotSave": "Save",
+  "guideHotspotSavedNote": "Saved only on this iPhone.",
+  "guideHotspotScan": "Scan this with the other phone's camera to join this iPhone's hotspot.",
+  "guideAndroidTitle": "Use this phone's hotspot",
+  "guideAndroidBody": "This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code."
 }

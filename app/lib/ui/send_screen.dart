@@ -10,6 +10,7 @@ import '../platform/host_platform.dart';
 import '../session/selection.dart';
 import '../session/session_controller.dart';
 import 'format.dart';
+import 'no_network_screen.dart';
 import 'session_screen.dart';
 
 /// Pick the files to share, then show the code.
@@ -53,17 +54,22 @@ class _SendScreenState extends State<SendScreen> {
   }
 
   Future<void> _start() async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    var hotspot = false;
     if ((await findLanAddresses()).isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l.sendNeedsWifi)));
-      return;
+      if (!mounted) return;
+      if (!widget.platform.canStartHotspot) {
+        showNoNetworkSnackBar(context, widget.platform);
+        return;
+      }
+      if (await askToStartHotspot(context, widget.platform) != true) return;
+      hotspot = true;
     }
     _handedOver = true;
     final files = _selection.takeAll();
     final reason = await navigator.push<StopReason>(MaterialPageRoute(
-      builder: (_) => SessionScreen(files: files, platform: widget.platform),
+      builder: (_) => SessionScreen(
+          files: files, platform: widget.platform, startHotspot: hotspot),
     ));
     // The session is over: back to the start, with the reason.
     if (mounted) navigator.pop(reason);

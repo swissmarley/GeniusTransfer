@@ -10,6 +10,7 @@ import '../receive/delivery.dart' show receiveStagingDir;
 import '../receive/save_settings.dart';
 import '../session/session_controller.dart';
 import 'format.dart';
+import 'no_network_screen.dart';
 import 'send_screen.dart';
 import 'session_screen.dart';
 import 'settings_screen.dart';
@@ -35,9 +36,15 @@ class HomeScreen extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    var hotspot = false;
     if ((await findLanAddresses()).isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l.sendNeedsWifi)));
-      return;
+      if (!context.mounted) return;
+      if (!platform.canStartHotspot) {
+        showNoNetworkSnackBar(context, platform);
+        return;
+      }
+      if (await askToStartHotspot(context, platform) != true) return;
+      hotspot = true;
     }
     if (Platform.isAndroid) {
       // Shown at a calm moment, before the code; see SendScreen.
@@ -46,7 +53,10 @@ class HomeScreen extends StatelessWidget {
     final staging = await receiveStagingDir();
     final reason = await navigator.push<StopReason>(MaterialPageRoute(
       builder: (_) => SessionScreen.receive(
-          platform: platform, settings: settings, stagingDir: staging),
+          platform: platform,
+          settings: settings,
+          stagingDir: staging,
+          startHotspot: hotspot),
     ));
     if (reason == StopReason.idle) {
       messenger.showSnackBar(SnackBar(content: Text(l.sessionIdleStopped)));

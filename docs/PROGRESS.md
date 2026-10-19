@@ -15,6 +15,50 @@ Conventions for this run:
 - Decisions taken without you are listed under each milestone so you can
   overrule them in the morning.
 
+## M3: no shared network
+
+What exists:
+
+- **Android host, no Wi-Fi:** Send or Receive asks "No Wi-Fi here" and
+  offers **Start a hotspot on this phone**. It creates a local-only
+  hotspot: a Wi-Fi network just for this transfer, without sharing mobile
+  data. The code then comes in two steps:
+  1. A "join this Wi-Fi" QR code, with the network name and password
+     written underneath. The stock camera on iPhone and Android joins it
+     with one tap.
+  2. "Joined? Show the second code": the usual page code, now with this
+     phone's hotspot address.
+  The hotspot also appears in the "Not opening?" help after 30 seconds,
+  for Wi-Fi networks that keep devices apart (hotels, guest Wi-Fi). It is
+  turned off with the session.
+- Android asks once for the permission it needs: Nearby Wi-Fi devices on
+  Android 13+, Location on Android 8–12. On 8–12 Location must also be on;
+  the app says so and opens the setting.
+- **iPhone and computers** (they cannot create a hotspot from an app):
+  "Other ways to connect" explains, step by step, how to use the other
+  phone's hotspot. On an iPhone it also explains this iPhone's Personal
+  Hotspot. You can save its name and password once, and the guide then
+  shows a QR code the other phone scans to join. The session screen
+  notices the new network by itself, and the code updates.
+
+Verified:
+
+- Unit tests for the Wi-Fi QR text, including escaping of `\ ; , " :` and
+  non-ASCII names. Widget tests for step 1 (code content, name, password,
+  Next) and for the computer guide.
+- The APK, iOS Simulator and macOS builds pass.
+- **Not run on an Android device**: the hotspot itself (permission
+  prompts, the network name and password, its address) needs the Samsung
+  tablet. It is the first thing to try in the morning (see TESTING.md).
+
+Decisions taken without you:
+
+- The hotspot is "local-only": it never shares this phone's mobile data,
+  and Android chooses its name and password. Android does not let apps
+  set them.
+- The guest's phone may say the Wi-Fi has no internet. The page text and
+  step 1 say to stay connected.
+
 ## M2b: receiving in the app
 
 What exists:

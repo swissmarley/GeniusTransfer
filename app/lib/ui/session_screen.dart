@@ -12,7 +12,9 @@ import '../platform/host_platform.dart';
 import '../receive/delivery.dart';
 import '../receive/save_settings.dart';
 import '../session/session_controller.dart';
+import '../net/wifi_qr.dart';
 import 'format.dart';
+import 'no_network_screen.dart';
 import 'qr_code_view.dart';
 import 'receive_panel.dart';
 import 'send_screen.dart' show FileBadge;
@@ -20,7 +22,11 @@ import 'send_screen.dart' show FileBadge;
 /// The code to scan, live status, and Stop.
 class SessionScreen extends StatefulWidget {
   /// Shares [files].
-  const SessionScreen({super.key, required this.files, required this.platform})
+  const SessionScreen(
+      {super.key,
+      required this.files,
+      required this.platform,
+      this.startHotspot = false})
       : settings = null,
         stagingDir = null;
 
@@ -30,6 +36,7 @@ class SessionScreen extends StatefulWidget {
     required this.platform,
     required SaveSettings this.settings,
     required Directory this.stagingDir,
+    this.startHotspot = false,
   }) : files = const [];
 
   /// The files to share. The session owns and releases them.
@@ -37,6 +44,9 @@ class SessionScreen extends StatefulWidget {
   final HostPlatform platform;
   final SaveSettings? settings;
   final Directory? stagingDir;
+
+  /// Android: start a hotspot right away (there is no network to share).
+  final bool startHotspot;
 
   bool get receiving => settings != null;
 
@@ -78,10 +88,36 @@ class _SessionScreenState extends State<SessionScreen> {
           ))
       ..addListener(_changed);
     _controller = controller;
-    unawaited(controller.start());
+    unawaited(_start(controller));
     _helpTimer = Timer(_helpDelay, () {
       if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _start(SessionController c) async {
+    await c.start();
+    if (widget.startHotspot && mounted) await _startHotspot();
+  }
+
+  Future<void> _startHotspot() async {
+    final c = _controller!;
+    await c.startHotspot();
+    final failure = c.hotspotFailure;
+    if (!mounted || failure == null) return;
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(hotspotFailureText(l, failure)),
+      action: failure == HotspotFailure.locationOff
+          ? SnackBarAction(
+              label: l.hotspotOpenLocation,
+              onPressed: () => unawaited(widget.platform.openLocationSettings()))
+          : null,
+    ));
+  }
+
+  void _otherWays() {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => NoNetworkScreen(platform: widget.platform)));
   }
 
   void _changed() {
@@ -97,6 +133,11 @@ class _SessionScreenState extends State<SessionScreen> {
       return;
     }
     if (!mounted) return;
+    if (c.hotspotLost) {
+      c.hotspotLost = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).hotspotLost)));
+    }
     if (widget.receiving) _receiveNotices(c);
     setState(() {});
   }
@@ -193,9 +234,19 @@ class _SessionScreenState extends State<SessionScreen> {
         body: SafeArea(
           child: LayoutBuilder(builder: (context, constraints) {
             final wide = constraints.maxWidth >= 760;
+            final hotspot =
+                widget.platform.canStartHotspot ? _startHotspot : null;
+            final help = _showHelp
+                ? _Help(
+                    desktop: _desktop,
+                    onStartHotspot: c.hotspot == null ? hotspot : null,
+                    onOtherWays: _otherWays)
+                : null;
             final code = _CodePanel(
                 controller: c,
                 receiving: widget.receiving,
+                onStartHotspot: hotspot,
+                onOtherWays: _otherWays,
                 maxSize: wide
                     ? min(constraints.maxHeight - 220, constraints.maxWidth / 2 - 80)
                     : constraints.maxWidth - 64);
@@ -204,10 +255,9 @@ class _SessionScreenState extends State<SessionScreen> {
                     controller: c,
                     settings: widget.settings!,
                     platform: widget.platform,
-                    help: _showHelp ? _Help(desktop: _desktop) : null,
+                    help: help,
                     onStop: _stop)
-                : _DetailsPanel(
-                    controller: c, showHelp: _showHelp, onStop: _stop);
+                : _DetailsPanel(controller: c, help: help, onStop: _stop);
             if (wide) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,30 +286,69 @@ class _SessionScreenState extends State<SessionScreen> {
 
 /// The QR code and the typeable address (or why there is none).
 class _CodePanel extends StatelessWidget {
-  const _CodePanel(
-      {required this.controller, required this.receiving, required this.maxSize});
+  const _CodePanel({
+    required this.controller,
+    required this.receiving,
+    required this.maxSize,
+    required this.onStartHotspot,
+    required this.onOtherWays,
+  });
 
   final SessionController controller;
   final bool receiving;
   final double maxSize;
+
+  /// Null where this device cannot make a hotspot.
+  final VoidCallback? onStartHotspot;
+  final VoidCallback onOtherWays;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final c = controller;
+    final size = maxSize.clamp(180.0, 380.0);
+
+    final hotspot = c.hotspot;
+    if (hotspot != null && c.hotspotStep == 1) {
+      return HotspotStepView(
+          controller: c, hotspot: hotspot, size: size, onOtherWays: onOtherWays);
+    }
 
     if (c.phase == SessionPhase.noNetwork) {
+      final failure = c.hotspotFailure;
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Icon(Icons.wifi_off_rounded,
                 size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 12),
             Text(l.sessionNoNetwork,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium),
+            if (c.startingHotspot) ...[
+              const SizedBox(height: 16),
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 8),
+              Text(l.hotspotStarting, textAlign: TextAlign.center),
+            ] else if (onStartHotspot != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: onStartHotspot,
+                icon: const Icon(Icons.wifi_tethering_rounded),
+                label: Text(l.hotspotStart),
+              ),
+            ],
+            if (failure != null) ...[
+              const SizedBox(height: 12),
+              Text(hotspotFailureText(l, failure),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: theme.colorScheme.error)),
+            ],
+            const SizedBox(height: 8),
+            TextButton(onPressed: onOtherWays, child: Text(l.noNetworkOtherWays)),
           ]),
         ),
       );
@@ -272,11 +361,10 @@ class _CodePanel extends StatelessWidget {
       );
     }
 
-    final size = maxSize.clamp(180.0, 380.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(l.sessionTitle,
+        Text(hotspot != null ? l.hotspotStep2Title : l.sessionTitle,
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineSmall
                 ?.copyWith(fontWeight: FontWeight.w700)),
@@ -297,14 +385,101 @@ class _CodePanel extends StatelessWidget {
             textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
         const SizedBox(height: 6),
         _TypeableUrl(text: c.typeableUrl ?? url.toString()),
-        if (c.addresses.length > 1) ...[
+        if (c.addresses.length > 1 && hotspot == null) ...[
           const SizedBox(height: 8),
           _NetworkChooser(controller: c),
+        ],
+        if (hotspot != null) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => c.showHotspotStep(1),
+            icon: const Icon(Icons.wifi_rounded),
+            label: Text(l.hotspotBack),
+          ),
         ],
       ],
     );
   }
 }
+
+/// Hotspot step 1: the Wi-Fi code that joins this phone's network.
+class HotspotStepView extends StatelessWidget {
+  const HotspotStepView({
+    super.key,
+    required this.controller,
+    required this.hotspot,
+    required this.size,
+    required this.onOtherWays,
+  });
+
+  final SessionController controller;
+  final HotspotInfo hotspot;
+  final double size;
+  final VoidCallback onOtherWays;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final password = hotspot.password;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l.hotspotStep1Title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 16),
+        Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: QrCodeView(
+              data: wifiQrPayload(ssid: hotspot.ssid, password: password),
+              size: size,
+              semanticLabel: l.hotspotNetwork(hotspot.ssid),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(l.hotspotStep1Hint,
+            textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SelectableText(
+              [
+                l.hotspotNetwork(hotspot.ssid),
+                if (password != null) l.hotspotPassword(password),
+              ].join('\n'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600, height: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Note(icon: Icons.signal_wifi_statusbar_connected_no_internet_4_rounded,
+            text: l.hotspotNoInternet),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: () => controller.showHotspotStep(2),
+          icon: const Icon(Icons.qr_code_2_rounded),
+          label: Text(l.hotspotNext),
+        ),
+      ],
+    );
+  }
+}
+
+/// What to tell the user when the hotspot could not be started.
+String hotspotFailureText(AppLocalizations l, HotspotFailure failure) =>
+    switch (failure) {
+      HotspotFailure.permission => l.hotspotFailedPermission,
+      HotspotFailure.locationOff => l.hotspotFailedLocation,
+      HotspotFailure.tetheringOn => l.hotspotFailedTethering,
+      HotspotFailure.failed => l.hotspotFailed,
+    };
 
 class _TypeableUrl extends StatelessWidget {
   const _TypeableUrl({required this.text});
@@ -366,10 +541,10 @@ class _NetworkChooser extends StatelessWidget {
 /// Status, notes, help, per-file progress and Stop.
 class _DetailsPanel extends StatelessWidget {
   const _DetailsPanel(
-      {required this.controller, required this.showHelp, required this.onStop});
+      {required this.controller, required this.help, required this.onStop});
 
   final SessionController controller;
-  final bool showHelp;
+  final Widget? help;
   final VoidCallback onStop;
 
   String _status(AppLocalizations l) {
@@ -395,7 +570,6 @@ class _DetailsPanel extends StatelessWidget {
         : Platform.isAndroid
             ? l.sessionKeepOpenAndroid
             : l.sessionKeepOpenDesktop;
-    final desktop = _desktop;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -437,9 +611,9 @@ class _DetailsPanel extends StatelessWidget {
           const SizedBox(height: 8),
           _Note(icon: Icons.play_circle_outline, text: l.sessionPaused),
         ],
-        if (showHelp) ...[
+        if (help != null) ...[
           const SizedBox(height: 12),
-          _Help(desktop: desktop),
+          help!,
         ],
         const SizedBox(height: 20),
         Text(l.sessionFiles, style: theme.textTheme.titleMedium),
@@ -503,9 +677,14 @@ class _Note extends StatelessWidget {
 }
 
 class _Help extends StatelessWidget {
-  const _Help({required this.desktop});
+  const _Help(
+      {required this.desktop,
+      required this.onStartHotspot,
+      required this.onOtherWays});
 
   final bool desktop;
+  final VoidCallback? onStartHotspot;
+  final VoidCallback onOtherWays;
 
   @override
   Widget build(BuildContext context) {
@@ -537,6 +716,17 @@ class _Help extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onTertiaryContainer)),
               ),
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 4, children: [
+              if (onStartHotspot != null)
+                FilledButton.tonalIcon(
+                  onPressed: onStartHotspot,
+                  icon: const Icon(Icons.wifi_tethering_rounded),
+                  label: Text(l.helpStartHotspot),
+                ),
+              TextButton(
+                  onPressed: onOtherWays, child: Text(l.noNetworkOtherWays)),
+            ]),
           ],
         ),
       ),

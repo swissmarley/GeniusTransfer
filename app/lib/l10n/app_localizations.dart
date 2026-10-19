@@ -367,7 +367,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpIsolation.
   ///
   /// In en, this message translates to:
-  /// **'Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a phone\'s hotspot. A built-in hotspot mode is coming in a later version.'**
+  /// **'Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a hotspot.'**
   String get helpIsolation;
 
   /// No description provided for @helpStayConnected.
@@ -591,6 +591,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Receiving files'**
   String get notificationReceiveTitle;
+
+  /// No description provided for @hotspotStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a hotspot on this phone'**
+  String get hotspotStart;
+
+  /// No description provided for @hotspotStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting the hotspot…'**
+  String get hotspotStarting;
+
+  /// No description provided for @hotspotStep1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 1 of 2: join this phone\'s Wi-Fi'**
+  String get hotspotStep1Title;
+
+  /// No description provided for @hotspotStep1Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'On the other phone, open the camera, scan this code and tap Join. Or join this network in its Wi-Fi settings.'**
+  String get hotspotStep1Hint;
+
+  /// No description provided for @hotspotNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network: {ssid}'**
+  String hotspotNetwork(String ssid);
+
+  /// No description provided for @hotspotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password: {password}'**
+  String hotspotPassword(String password);
+
+  /// No description provided for @hotspotNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined? Show the second code'**
+  String get hotspotNext;
+
+  /// No description provided for @hotspotStep2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2 of 2: scan to open the page'**
+  String get hotspotStep2Title;
+
+  /// No description provided for @hotspotBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the Wi-Fi code again'**
+  String get hotspotBack;
+
+  /// No description provided for @hotspotNoInternet.
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone may warn that this Wi-Fi has no internet. That\'s expected: if it asks, choose to stay connected.'**
+  String get hotspotNoInternet;
+
+  /// No description provided for @hotspotLost.
+  ///
+  /// In en, this message translates to:
+  /// **'The hotspot was turned off. Start it again, or connect both devices to the same Wi-Fi.'**
+  String get hotspotLost;
+
+  /// No description provided for @hotspotFailedPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'GeniusTransfer needs the Nearby devices (or Location) permission to create a hotspot. Allow it and try again.'**
+  String get hotspotFailedPermission;
+
+  /// No description provided for @hotspotFailedLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Location first: this version of Android requires it to create a hotspot.'**
+  String get hotspotFailedLocation;
+
+  /// No description provided for @hotspotOpenLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Location settings'**
+  String get hotspotOpenLocation;
+
+  /// No description provided for @hotspotFailedTethering.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off this phone\'s own hotspot or tethering first, then try again.'**
+  String get hotspotFailedTethering;
+
+  /// No description provided for @hotspotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t start the hotspot. Make sure Wi-Fi is on and try again, or use the other phone\'s hotspot.'**
+  String get hotspotFailed;
+
+  /// No description provided for @noNetworkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No Wi-Fi here'**
+  String get noNetworkTitle;
+
+  /// No description provided for @noNetworkHotspotBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone can create its own Wi-Fi network for the other phone to join. Nothing goes through the internet.'**
+  String get noNetworkHotspotBody;
+
+  /// No description provided for @noNetworkOtherWays.
+  ///
+  /// In en, this message translates to:
+  /// **'Other ways to connect'**
+  String get noNetworkOtherWays;
+
+  /// No description provided for @noNetworkCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get noNetworkCancel;
+
+  /// No description provided for @helpStartHotspot.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a hotspot instead'**
+  String get helpStartHotspot;
+
+  /// No description provided for @guideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No shared Wi-Fi?'**
+  String get guideTitle;
+
+  /// No description provided for @guideIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Both devices need to be on the same network. Without a Wi-Fi network, one of the phones can make one with its hotspot. No internet is used.'**
+  String get guideIntro;
+
+  /// No description provided for @guideOtherHotspotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the other phone\'s hotspot'**
+  String get guideOtherHotspotTitle;
+
+  /// No description provided for @guideOtherHotspotStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'On the other phone, turn on its hotspot. iPhone: Settings › Personal Hotspot › Allow Others to Join. Android: Settings › Connections or Network › Hotspot.'**
+  String get guideOtherHotspotStep1;
+
+  /// No description provided for @guideOtherHotspotStep2Iphone.
+  ///
+  /// In en, this message translates to:
+  /// **'On this iPhone, open Settings › Wi-Fi and join that network.'**
+  String get guideOtherHotspotStep2Iphone;
+
+  /// No description provided for @guideOtherHotspotStep2Android.
+  ///
+  /// In en, this message translates to:
+  /// **'On this phone, open the Wi-Fi settings and join that network.'**
+  String get guideOtherHotspotStep2Android;
+
+  /// No description provided for @guideOtherHotspotStep2Computer.
+  ///
+  /// In en, this message translates to:
+  /// **'On this computer, join that Wi-Fi network.'**
+  String get guideOtherHotspotStep2Computer;
+
+  /// No description provided for @guideOtherHotspotStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back here. The code updates by itself; scan it with the other phone.'**
+  String get guideOtherHotspotStep3;
+
+  /// No description provided for @guideOwnHotspotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this iPhone\'s Personal Hotspot'**
+  String get guideOwnHotspotTitle;
+
+  /// No description provided for @guideOwnHotspotStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings › Personal Hotspot and turn on Allow Others to Join. Your mobile plan must include it.'**
+  String get guideOwnHotspotStep1;
+
+  /// No description provided for @guideOwnHotspotStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'On the other phone, join this iPhone\'s Wi-Fi network. To let it scan a code instead of typing the password, save the name and password below.'**
+  String get guideOwnHotspotStep2;
+
+  /// No description provided for @guideOwnHotspotStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'When the other phone has joined, the code here updates. Scan it with the other phone.'**
+  String get guideOwnHotspotStep3;
+
+  /// No description provided for @guideHotspotName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotspot name'**
+  String get guideHotspotName;
+
+  /// No description provided for @guideHotspotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotspot password'**
+  String get guideHotspotPassword;
+
+  /// No description provided for @guideHotspotSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get guideHotspotSave;
+
+  /// No description provided for @guideHotspotSavedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved only on this iPhone.'**
+  String get guideHotspotSavedNote;
+
+  /// No description provided for @guideHotspotScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this with the other phone\'s camera to join this iPhone\'s hotspot.'**
+  String get guideHotspotScan;
+
+  /// No description provided for @guideAndroidTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this phone\'s hotspot'**
+  String get guideAndroidTitle;
+
+  /// No description provided for @guideAndroidBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code.'**
+  String get guideAndroidBody;
 }
 
 class _AppLocalizationsDelegate

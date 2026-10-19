@@ -21,6 +21,10 @@ class MainActivity : FlutterFragmentActivity() {
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
             host?.onFolderPicked(tree)
         }
+    private val hotspotPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            host?.hotspot?.onPermissionResult(granted)
+        }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -34,6 +38,7 @@ class MainActivity : FlutterFragmentActivity() {
             },
             launchDocumentPicker = { pickDocuments.launch(arrayOf("*/*")) },
             launchFolderPicker = { pickFolder.launch(null) },
+            requestHotspotPermission = { permission -> hotspotPermission.launch(permission) },
         )
     }
 

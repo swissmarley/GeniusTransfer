@@ -35,11 +35,15 @@ class HostChannel(
     private val launchMediaPicker: () -> Unit,
     private val launchDocumentPicker: () -> Unit,
     private val launchFolderPicker: () -> Unit,
+    requestHotspotPermission: (String) -> Unit,
 ) : MethodChannel.MethodCallHandler {
     private val channel = MethodChannel(messenger, "geniustransfer/host")
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private val delivery = Delivery(activity.applicationContext)
+    val hotspot = Hotspot(activity, requestHotspotPermission) {
+        main.post { channel.invokeMethod("hotspotStopped", null) }
+    }
 
     /** The caller of the open picker. One picker at a time, of any kind. */
     private var pendingPick: MethodChannel.Result? = null
@@ -52,6 +56,7 @@ class HostChannel(
     }
 
     fun dispose() {
+        hotspot.stop()
         channel.setMethodCallHandler(null)
         SessionService.onStopRequested = null
         io.shutdown()
@@ -114,6 +119,15 @@ class HostChannel(
             }
             "stopSession" -> {
                 SessionService.stop(activity)
+                result.success(null)
+            }
+            "startHotspot" -> hotspot.start(result)
+            "stopHotspot" -> {
+                hotspot.stop()
+                result.success(null)
+            }
+            "openLocationSettings" -> {
+                hotspot.openLocationSettings()
                 result.success(null)
             }
             else -> result.notImplemented()
