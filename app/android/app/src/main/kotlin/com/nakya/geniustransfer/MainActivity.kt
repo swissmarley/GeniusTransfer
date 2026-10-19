@@ -1,6 +1,7 @@
 package com.nakya.geniustransfer
 
 import android.content.Intent
+import android.os.Bundle
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -8,6 +9,9 @@ import io.flutter.embedding.engine.FlutterEngine
 
 class MainActivity : FlutterFragmentActivity() {
     private var host: HostChannel? = null
+
+    /** Recreated after the process died: the Intent is an old one. */
+    private var restored = false
 
     // Registered at construction time, as the Activity Result API requires.
     private val pickMedia =
@@ -22,10 +26,19 @@ class MainActivity : FlutterFragmentActivity() {
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
             host?.onFolderPicked(tree)
         }
-    private val hotspotPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            host?.hotspot?.onPermissionResult(granted)
+    private val hotspotPermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { answers ->
+            host?.hotspot?.onPermissionResult(answers)
         }
+    private val permission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            host?.onPermissionResult()
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        restored = savedInstanceState != null
+        super.onCreate(savedInstanceState)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -39,10 +52,14 @@ class MainActivity : FlutterFragmentActivity() {
             },
             launchDocumentPicker = { pickDocuments.launch(arrayOf("*/*")) },
             launchFolderPicker = { pickFolder.launch(null) },
-            requestHotspotPermission = { permission -> hotspotPermission.launch(permission) },
+            requestPermission = { name -> permission.launch(name) },
+            requestHotspotPermissions = { names -> hotspotPermissions.launch(names) },
         )
-        // Started from another app's share sheet.
-        host?.onIntent(intent)
+        // Started from another app's share sheet. Not when Android brings
+        // back an old Intent (from Recents, or after the process died).
+        val fromHistory =
+            intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
+        if (!restored && !fromHistory) host?.onIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {

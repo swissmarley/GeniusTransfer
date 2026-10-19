@@ -27,7 +27,7 @@ import io.flutter.plugin.common.MethodChannel
  */
 class Hotspot(
     private val activity: Activity,
-    private val requestPermission: (String) -> Unit,
+    private val requestPermissions: (Array<String>) -> Unit,
     private val onStopped: () -> Unit,
 ) {
     private val wifi =
@@ -37,6 +37,9 @@ class Hotspot(
 
     /** The caller waiting for a permission answer or for the hotspot. */
     private var pending: MethodChannel.Result? = null
+
+    /** [stop] came while Android was still starting the hotspot. */
+    private var cancelled = false
 
     /** Replies with `{ssid, password}`, or an error code for the Dart side. */
     fun start(result: MethodChannel.Result) {
@@ -48,20 +51,24 @@ class Hotspot(
             describe(current)?.let { return result.success(it) }
         }
         pending = result
-        val permission = requiredPermission()
-        if (ContextCompat.checkSelfPermission(activity, permission) ==
+        cancelled = false
+        if (ContextCompat.checkSelfPermission(activity, requiredPermission()) ==
             PackageManager.PERMISSION_GRANTED
         ) {
             begin()
         } else {
-            requestPermission(permission)
+            requestPermissions(permissionsToRequest())
         }
     }
 
-    /** MainActivity forwards the permission dialog's answer here. */
-    fun onPermissionResult(granted: Boolean) {
+    /**
+     * MainActivity forwards the permission dialog's answers here. An empty
+     * map means the request was cancelled (for example because another
+     * permission dialog was showing).
+     */
+    fun onPermissionResult(answers: Map<String, Boolean>) {
         if (pending == null) return
-        if (granted) {
+        if (answers[requiredPermission()] == true) {
             begin()
         } else {
             fail("permission", "Permission to create a hotspot was refused.")
@@ -69,6 +76,8 @@ class Hotspot(
     }
 
     fun stop() {
+        // A start still in progress must not leave a hotspot behind.
+        if (pending != null) cancelled = true
         reservation?.close()
         reservation = null
     }
@@ -89,6 +98,11 @@ class Hotspot(
         try {
             wifi.startLocalOnlyHotspot(object : WifiManager.LocalOnlyHotspotCallback() {
                 override fun onStarted(started: WifiManager.LocalOnlyHotspotReservation) {
+                    if (cancelled) {
+                        started.close()
+                        fail("failed", "The session ended while the hotspot was starting.")
+                        return
+                    }
                     val info = describe(started)
                     if (info == null) {
                         started.close()
@@ -105,6 +119,13 @@ class Hotspot(
                 }
 
                 override fun onFailed(reason: Int) {
+                    if (pending == null && reservation != null) {
+                        // It was running and broke down: same as stopped.
+                        reservation?.close()
+                        reservation = null
+                        onStopped.invoke()
+                        return
+                    }
                     val code = if (reason == ERROR_INCOMPATIBLE_MODE) "tethering_on" else "failed"
                     fail(code, "The hotspot could not start (reason $reason).")
                 }
@@ -134,6 +155,20 @@ class Hotspot(
             Manifest.permission.NEARBY_WIFI_DEVICES
         } else {
             Manifest.permission.ACCESS_FINE_LOCATION
+        }
+
+    /**
+     * Android 12 ignores a request for fine location that does not also ask
+     * for coarse location, so ask for both there (and before).
+     */
+    private fun permissionsToRequest(): Array<String> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES)
+        } else {
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+            )
         }
 
     private fun locationEnabled(): Boolean {

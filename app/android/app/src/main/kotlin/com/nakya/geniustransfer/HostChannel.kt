@@ -15,7 +15,6 @@ import android.provider.OpenableColumns
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -37,14 +36,22 @@ class HostChannel(
     private val launchMediaPicker: () -> Unit,
     private val launchDocumentPicker: () -> Unit,
     private val launchFolderPicker: () -> Unit,
-    requestHotspotPermission: (String) -> Unit,
+    private val requestPermission: (String) -> Unit,
+    requestHotspotPermissions: (Array<String>) -> Unit,
 ) : MethodChannel.MethodCallHandler {
     private val channel = MethodChannel(messenger, "geniustransfer/host")
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private val delivery = Delivery(activity.applicationContext)
-    val hotspot = Hotspot(activity, requestHotspotPermission) {
+    val hotspot = Hotspot(activity, requestHotspotPermissions) {
         main.post { channel.invokeMethod("hotspotStopped", null) }
+    }
+
+    /** The caller waiting for a permission dialog's answer. */
+    private var pendingPermission: MethodChannel.Result? = null
+
+    private val stopListener: () -> Unit = {
+        main.post { channel.invokeMethod("stopRequested", null) }
     }
 
     /** The caller of the open picker. One picker at a time, of any kind. */
@@ -55,15 +62,17 @@ class HostChannel(
 
     init {
         channel.setMethodCallHandler(this)
-        SessionService.onStopRequested = {
-            main.post { channel.invokeMethod("stopRequested", null) }
-        }
+        SessionService.onStopRequested = stopListener
     }
 
     fun dispose() {
         hotspot.stop()
         channel.setMethodCallHandler(null)
-        SessionService.onStopRequested = null
+        if (SessionService.onStopRequested === stopListener) {
+            SessionService.onStopRequested = null
+        }
+        pendingPermission?.success(null)
+        pendingPermission = null
         io.shutdown()
     }
 
@@ -91,16 +100,11 @@ class HostChannel(
             "requestStoragePermission" -> {
                 // Android 8–9 only, to save into Pictures, Movies and Download.
                 // Without it, received files go to the app's own folder.
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-                    ContextCompat.checkSelfPermission(
-                        activity, Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    ActivityCompat.requestPermissions(
-                        activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 2
-                    )
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                    askFor(Manifest.permission.WRITE_EXTERNAL_STORAGE, result)
+                } else {
+                    result.success(null)
                 }
-                result.success(null)
             }
             "clearCopies" -> io.execute {
                 copiesDir().deleteRecursively()
@@ -116,16 +120,11 @@ class HostChannel(
                 result.success(null)
             }
             "requestNotificationPermission" -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(
-                        activity, Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    ActivityCompat.requestPermissions(
-                        activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1
-                    )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    askFor(Manifest.permission.POST_NOTIFICATIONS, result)
+                } else {
+                    result.success(null)
                 }
-                result.success(null)
             }
             "stopSession" -> {
                 SessionService.stop(activity)
@@ -143,6 +142,28 @@ class HostChannel(
             }
             else -> result.notImplemented()
         }
+    }
+
+    /**
+     * Shows the permission dialog if needed and replies once the user has
+     * answered. Android cancels a second dialog requested while one is
+     * showing, so the Dart side waits for each before asking for the next.
+     */
+    private fun askFor(permission: String, result: MethodChannel.Result) {
+        if (ContextCompat.checkSelfPermission(activity, permission) ==
+            PackageManager.PERMISSION_GRANTED || pendingPermission != null
+        ) {
+            result.success(null)
+            return
+        }
+        pendingPermission = result
+        requestPermission(permission)
+    }
+
+    /** MainActivity forwards the answer to [askFor]'s dialog here. */
+    fun onPermissionResult() {
+        pendingPermission?.success(null)
+        pendingPermission = null
     }
 
     private fun startPick(result: MethodChannel.Result, launch: () -> Unit) {
