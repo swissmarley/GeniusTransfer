@@ -831,6 +831,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code.'**
   String get guideAndroidBody;
+
+  /// No description provided for @settingsPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get settingsPrivacy;
+
+  /// No description provided for @settingsPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for a PIN'**
+  String get settingsPinTitle;
+
+  /// No description provided for @settingsPinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device must type a 4-digit PIN shown next to the code. Useful in public places: someone who scans the code without the PIN sees nothing.'**
+  String get settingsPinBody;
+
+  /// No description provided for @sessionPinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN'**
+  String get sessionPinLabel;
+
+  /// No description provided for @sessionPinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device will ask for this PIN.'**
+  String get sessionPinHint;
+
+  /// No description provided for @sessionWrongPins.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 wrong PIN was entered.} other{{count} wrong PINs were entered.}}'**
+  String sessionWrongPins(int count);
+
+  /// No description provided for @sessionPinLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else.'**
+  String get sessionPinLocked;
 }
 
 class _AppLocalizationsDelegate

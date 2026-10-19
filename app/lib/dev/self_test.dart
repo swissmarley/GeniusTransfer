@@ -7,7 +7,7 @@ import 'package:transfer_server/transfer_server.dart';
 
 import '../platform/host_platform.dart';
 import '../receive/delivery.dart' show receiveStagingDir;
-import '../receive/save_settings.dart';
+import '../settings.dart';
 import '../session/selection.dart';
 import '../session/session_controller.dart';
 import '../ui/home_screen.dart';
@@ -29,7 +29,7 @@ class SelfTestScreen extends StatefulWidget {
       {super.key, required this.platform, required this.settings});
 
   final HostPlatform platform;
-  final SaveSettings settings;
+  final AppSettings settings;
 
   @override
   State<SelfTestScreen> createState() => _SelfTestScreenState();

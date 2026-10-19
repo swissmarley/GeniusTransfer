@@ -15,9 +15,19 @@ import 'session_screen.dart';
 
 /// Pick the files to share, then show the code.
 class SendScreen extends StatefulWidget {
-  const SendScreen({super.key, required this.platform});
+  const SendScreen(
+      {super.key,
+      required this.platform,
+      this.shared = const [],
+      this.requirePin = false});
 
   final HostPlatform platform;
+
+  /// Guests must type a PIN (see SessionScreen.requirePin).
+  final bool requirePin;
+
+  /// Android: files shared with us by another app, to start with.
+  final List<AndroidPickedFile> shared;
 
   @override
   State<SendScreen> createState() => _SendScreenState();
@@ -25,6 +35,7 @@ class SendScreen extends StatefulWidget {
 
 class _SendScreenState extends State<SendScreen> {
   late final Selection _selection = Selection(widget.platform)
+    ..addShared(widget.shared)
     ..addListener(_changed);
   bool _handedOver = false;
 
@@ -69,7 +80,10 @@ class _SendScreenState extends State<SendScreen> {
     final files = _selection.takeAll();
     final reason = await navigator.push<StopReason>(MaterialPageRoute(
       builder: (_) => SessionScreen(
-          files: files, platform: widget.platform, startHotspot: hotspot),
+          files: files,
+          platform: widget.platform,
+          requirePin: widget.requirePin,
+          startHotspot: hotspot),
     ));
     // The session is over: back to the start, with the reason.
     if (mounted) navigator.pop(reason);

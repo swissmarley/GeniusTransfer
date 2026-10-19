@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:transfer_server/transfer_server.dart';
 
 import '../platform/host_platform.dart';
-import 'save_settings.dart';
+import '../settings.dart';
 
 /// Where a received file ended up.
 enum SavedIn {
@@ -56,7 +56,7 @@ class Delivery {
   Delivery({required this.platform, required this.settings});
 
   final HostPlatform platform;
-  final SaveSettings settings;
+  final AppSettings settings;
 
   /// Set when the chosen folder could not be used and a file went to the
   /// default folder instead.

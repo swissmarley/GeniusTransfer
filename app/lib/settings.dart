@@ -4,39 +4,54 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../platform/host_platform.dart';
+import 'platform/host_platform.dart';
 
-/// The user's choice of folder for received files. Null means the default:
-/// Pictures, Movies or Download › GeniusTransfer on Android (by file type),
-/// Files › On My iPhone › GeniusTransfer › Received on iOS, and
-/// Downloads › GeniusTransfer on computers.
-class SaveSettings extends ChangeNotifier {
-  SaveSettings._(this._folder);
+/// The user's settings, kept on this device.
+///
+/// - [folder]: where received files go. Null means the default: Pictures,
+///   Movies or Download › GeniusTransfer on Android (by file type), Files ›
+///   On My iPhone › GeniusTransfer › Received on iOS, and Downloads ›
+///   GeniusTransfer on computers.
+/// - [requirePin]: each session gets a 4-digit PIN the guest must type.
+class AppSettings extends ChangeNotifier {
+  AppSettings._(this._folder, this._requirePin);
 
   /// Starts with [folder] (default: none) and touches no storage until
   /// something changes. For tests.
   @visibleForTesting
-  SaveSettings.forTest({SaveFolder? folder}) : this._(folder);
+  AppSettings.forTest({SaveFolder? folder, bool requirePin = false})
+      : this._(folder, requirePin);
 
   static const _idKey = 'saveFolder.id';
   static const _nameKey = 'saveFolder.name';
+  static const _pinKey = 'requirePin';
 
   late final _prefs = SharedPreferencesAsync();
   SaveFolder? _folder;
+  bool _requirePin;
 
   SaveFolder? get folder => _folder;
+  bool get requirePin => _requirePin;
 
-  static Future<SaveSettings> load() async {
+  Future<void> setRequirePin(bool value) async {
+    _requirePin = value;
+    notifyListeners();
+    await _prefs.setBool(_pinKey, value);
+  }
+
+  static Future<AppSettings> load() async {
     final prefs = SharedPreferencesAsync();
     SaveFolder? folder;
+    var requirePin = false;
     try {
       final id = await prefs.getString(_idKey);
       final name = await prefs.getString(_nameKey);
       if (id != null && name != null) folder = SaveFolder(id: id, name: name);
+      requirePin = await prefs.getBool(_pinKey) ?? false;
     } catch (e) {
       debugPrint('Could not read settings: $e');
     }
-    return SaveSettings._(folder);
+    return AppSettings._(folder, requirePin);
   }
 
   /// Lets the user choose a folder and remembers it. Returns false if they

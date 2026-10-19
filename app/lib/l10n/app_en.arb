@@ -273,5 +273,19 @@
   "guideHotspotSavedNote": "Saved only on this iPhone.",
   "guideHotspotScan": "Scan this with the other phone's camera to join this iPhone's hotspot.",
   "guideAndroidTitle": "Use this phone's hotspot",
-  "guideAndroidBody": "This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code."
+  "guideAndroidBody": "This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code.",
+  "settingsPrivacy": "Privacy",
+  "settingsPinTitle": "Ask for a PIN",
+  "settingsPinBody": "The other device must type a 4-digit PIN shown next to the code. Useful in public places: someone who scans the code without the PIN sees nothing.",
+  "sessionPinLabel": "PIN",
+  "sessionPinHint": "The other device will ask for this PIN.",
+  "sessionWrongPins": "{count, plural, =1{1 wrong PIN was entered.} other{{count} wrong PINs were entered.}}",
+  "@sessionWrongPins": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionPinLocked": "Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else."
 }

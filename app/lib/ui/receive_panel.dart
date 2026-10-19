@@ -7,7 +7,7 @@ import 'package:transfer_server/transfer_server.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/host_platform.dart';
 import '../receive/delivery.dart';
-import '../receive/save_settings.dart';
+import '../settings.dart';
 import '../session/session_controller.dart';
 import 'format.dart';
 import 'send_screen.dart' show FileBadge;
@@ -25,7 +25,7 @@ class ReceivePanel extends StatelessWidget {
   });
 
   final SessionController controller;
-  final SaveSettings settings;
+  final AppSettings settings;
   final HostPlatform platform;
   final Widget? help;
   final VoidCallback onStop;
@@ -133,7 +133,7 @@ class ReceivePanel extends StatelessWidget {
 class _SaveLocationNote extends StatelessWidget {
   const _SaveLocationNote({required this.settings});
 
-  final SaveSettings settings;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +150,7 @@ class _SaveLocationNote extends StatelessWidget {
 
 /// Where received files go, in words: the chosen folder, or the default.
 Future<String> describeSaveLocation(
-    AppLocalizations l, SaveSettings settings) async {
+    AppLocalizations l, AppSettings settings) async {
   final folder = settings.folder;
   if (folder != null) return folder.name;
   if (Platform.isAndroid) return l.saveDefaultAndroid;

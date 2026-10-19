@@ -109,6 +109,13 @@ class Selection extends ChangeNotifier {
                 name: p.name, length: p.length, lastModified: p.lastModified)),
       ];
 
+  /// Adds files another app shared with us (Android).
+  void addShared(List<AndroidPickedFile> picked) {
+    if (picked.isEmpty) return;
+    _files.addAll(_fromAndroid(picked));
+    notifyListeners();
+  }
+
   /// Removes one file and releases it.
   Future<void> removeAt(int index) async {
     final file = _files.removeAt(index);

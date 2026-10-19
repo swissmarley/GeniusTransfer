@@ -478,4 +478,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get guideAndroidBody =>
       'This phone can create a Wi-Fi network just for this transfer. The other phone joins it by scanning a code.';
+
+  @override
+  String get settingsPrivacy => 'Privacy';
+
+  @override
+  String get settingsPinTitle => 'Ask for a PIN';
+
+  @override
+  String get settingsPinBody =>
+      'The other device must type a 4-digit PIN shown next to the code. Useful in public places: someone who scans the code without the PIN sees nothing.';
+
+  @override
+  String get sessionPinLabel => 'PIN';
+
+  @override
+  String get sessionPinHint => 'The other device will ask for this PIN.';
+
+  @override
+  String sessionWrongPins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wrong PINs were entered.',
+      one: '1 wrong PIN was entered.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sessionPinLocked =>
+      'Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else.';
 }

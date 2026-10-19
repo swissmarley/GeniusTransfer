@@ -62,12 +62,13 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   /// Shares [files]: the guest downloads them.
   SessionController.send({
     required List<SharedFile> files,
+    String? pin,
     required this.platform,
     required this.notificationTitle,
     required this.notificationText,
     required this.notificationStop,
   })  : mode = SessionMode.send,
-        server = TransferServer(files: files),
+        server = TransferServer(files: files, pin: pin),
         progress = [for (final f in files) FileProgress(f.length)],
         delivery = null,
         stagingDir = null;
@@ -76,6 +77,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   /// accepts each batch. [delivery] moves them to their final place.
   SessionController.receive({
     required Directory this.stagingDir,
+    String? pin,
     required Delivery this.delivery,
     required this.platform,
     required this.notificationTitle,
@@ -84,6 +86,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   })  : mode = SessionMode.receive,
         server = TransferServer(
           mode: SessionMode.receive,
+          pin: pin,
           receiveOptions: ReceiveOptions(
             stagingDir: stagingDir,
             freeBytes: () => platform.freeBytes(stagingDir.path),
@@ -120,6 +123,9 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Receive mode: the latest batch that finished, for a short message.
   IncomingBatch? lastFinished;
+
+  /// The PIN guests must type, if the user asked for one.
+  String? get pin => server.pin;
 
   /// Wrong PINs typed by guests so far, and whether that locked the session.
   int wrongPins = 0;

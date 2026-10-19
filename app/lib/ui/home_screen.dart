@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../net/lan_address.dart';
 import '../platform/host_platform.dart';
 import '../receive/delivery.dart' show receiveStagingDir;
-import '../receive/save_settings.dart';
+import '../settings.dart';
 import '../session/session_controller.dart';
 import 'format.dart';
 import 'no_network_screen.dart';
@@ -15,21 +15,68 @@ import 'send_screen.dart';
 import 'session_screen.dart';
 import 'settings_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.platform, required this.settings});
 
   final HostPlatform platform;
-  final SaveSettings settings;
+  final AppSettings settings;
 
-  Future<void> _send(BuildContext context) async {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  HostPlatform get platform => widget.platform;
+  AppSettings get settings => widget.settings;
+  bool _takingShared = false;
+
+  @override
+  void initState() {
+    super.initState();
+    platform.onSharedFilesAvailable = _openShared;
+    // Started from another app's share sheet: the files are already waiting.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openShared());
+  }
+
+  @override
+  void dispose() {
+    if (platform.onSharedFilesAvailable == _openShared) {
+      platform.onSharedFilesAvailable = null;
+    }
+    super.dispose();
+  }
+
+  /// Android: opens Send with the files another app shared with us. While
+  /// another screen is open (a session, say), they wait for Home.
+  Future<void> _openShared() async {
+    if (!mounted || _takingShared) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    _takingShared = true;
+    try {
+      final shared = await platform.takeSharedFiles();
+      if (shared.isNotEmpty && mounted) await _send(context, shared: shared);
+    } catch (e) {
+      debugPrint('Could not open shared files: $e');
+    } finally {
+      _takingShared = false;
+    }
+  }
+
+  Future<void> _send(BuildContext context,
+      {List<AndroidPickedFile> shared = const []}) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final reason = await Navigator.of(context).push<StopReason>(
-      MaterialPageRoute(builder: (_) => SendScreen(platform: platform)),
+      MaterialPageRoute(
+          builder: (_) => SendScreen(
+              platform: platform,
+              shared: shared,
+              requirePin: settings.requirePin)),
     );
     if (reason == StopReason.idle) {
       messenger.showSnackBar(SnackBar(content: Text(l.sessionIdleStopped)));
     }
+    unawaited(_openShared());
   }
 
   Future<void> _receive(BuildContext context) async {
@@ -56,17 +103,20 @@ class HomeScreen extends StatelessWidget {
           platform: platform,
           settings: settings,
           stagingDir: staging,
+          requirePin: settings.requirePin,
           startHotspot: hotspot),
     ));
     if (reason == StopReason.idle) {
       messenger.showSnackBar(SnackBar(content: Text(l.sessionIdleStopped)));
     }
+    unawaited(_openShared());
   }
 
-  void _openSettings(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute<void>(
+  Future<void> _openSettings(BuildContext context) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => SettingsScreen(settings: settings, platform: platform),
     ));
+    unawaited(_openShared());
   }
 
   @override

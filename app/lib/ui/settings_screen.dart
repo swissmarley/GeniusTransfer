@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/host_platform.dart';
-import '../receive/save_settings.dart';
+import '../settings.dart';
 import 'receive_panel.dart' show describeSaveLocation;
 
 /// Where received files are saved.
@@ -12,7 +12,7 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen(
       {super.key, required this.settings, required this.platform});
 
-  final SaveSettings settings;
+  final AppSettings settings;
   final HostPlatform platform;
 
   @override
@@ -90,6 +90,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(l.settingsPhotosNote,
                           style: theme.textTheme.bodyMedium),
                     ],
+                    const SizedBox(height: 28),
+                    Text(l.settingsPrivacy,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    Card(
+                      child: SwitchListTile(
+                        value: widget.settings.requirePin,
+                        onChanged: widget.settings.setRequirePin,
+                        title: Text(l.settingsPinTitle),
+                        subtitle: Text(l.settingsPinBody),
+                      ),
+                    ),
                   ],
                 );
               },

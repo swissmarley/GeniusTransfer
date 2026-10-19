@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geniustransfer/l10n/app_localizations.dart';
 import 'package:geniustransfer/platform/host_platform.dart';
 import 'package:geniustransfer/receive/delivery.dart';
-import 'package:geniustransfer/receive/save_settings.dart';
+import 'package:geniustransfer/settings.dart';
 import 'package:geniustransfer/session/session_controller.dart';
 import 'package:geniustransfer/ui/receive_panel.dart';
 import 'package:transfer_server/transfer_server.dart';
@@ -60,7 +60,7 @@ void main() {
     final platform = HostPlatform();
     controller = SessionController.receive(
       stagingDir: Directory.systemTemp,
-      delivery: Delivery(platform: platform, settings: SaveSettings.forTest()),
+      delivery: Delivery(platform: platform, settings: AppSettings.forTest()),
       platform: platform,
       notificationTitle: '',
       notificationText: '',

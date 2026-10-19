@@ -110,6 +110,8 @@ class HostPlatform {
           onBackgroundTimeExpired?.call();
         case 'hotspotStopped':
           onHotspotStopped?.call();
+        case 'sharedFilesAvailable':
+          onSharedFilesAvailable?.call();
       }
     });
   }
@@ -125,11 +127,20 @@ class HostPlatform {
   /// Android: the system turned our hotspot off.
   void Function()? onHotspotStopped;
 
+  /// Android: another app shared files with us ("Share › GeniusTransfer");
+  /// fetch them with [takeSharedFiles].
+  void Function()? onSharedFilesAvailable;
+
   /// Android: opens the system photo picker (photos and videos).
   Future<List<AndroidPickedFile>> pickMedia() => _pick('pickMedia');
 
   /// Android: opens the system file picker (any type).
   Future<List<AndroidPickedFile>> pickDocuments() => _pick('pickDocuments');
+
+  /// Android: files shared with us by another app since the last call,
+  /// already opened. Empty elsewhere.
+  Future<List<AndroidPickedFile>> takeSharedFiles() async =>
+      Platform.isAndroid ? _pick('takeSharedFiles') : const [];
 
   Future<List<AndroidPickedFile>> _pick(String method) async {
     final list = await _channel.invokeListMethod<Object?>(method) ?? const [];

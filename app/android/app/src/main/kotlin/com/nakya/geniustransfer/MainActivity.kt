@@ -1,5 +1,6 @@
 package com.nakya.geniustransfer
 
+import android.content.Intent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -40,6 +41,14 @@ class MainActivity : FlutterFragmentActivity() {
             launchFolderPicker = { pickFolder.launch(null) },
             requestHotspotPermission = { permission -> hotspotPermission.launch(permission) },
         )
+        // Started from another app's share sheet.
+        host?.onIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        host?.onIntent(intent)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {

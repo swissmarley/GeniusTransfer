@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dev/self_test.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/host_platform.dart';
-import 'receive/save_settings.dart';
+import 'settings.dart';
 import 'session/session_controller.dart' show kSelfTest;
 import 'ui/home_screen.dart';
 import 'ui/theme.dart';
@@ -13,7 +13,7 @@ class GeniusTransferApp extends StatelessWidget {
       {super.key, required this.platform, required this.settings});
 
   final HostPlatform platform;
-  final SaveSettings settings;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {

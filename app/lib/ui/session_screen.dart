@@ -10,7 +10,7 @@ import '../l10n/app_localizations.dart';
 import '../net/lan_address.dart';
 import '../platform/host_platform.dart';
 import '../receive/delivery.dart';
-import '../receive/save_settings.dart';
+import '../settings.dart';
 import '../session/session_controller.dart';
 import '../net/wifi_qr.dart';
 import 'format.dart';
@@ -26,6 +26,7 @@ class SessionScreen extends StatefulWidget {
       {super.key,
       required this.files,
       required this.platform,
+      this.requirePin = false,
       this.startHotspot = false})
       : settings = null,
         stagingDir = null;
@@ -34,19 +35,23 @@ class SessionScreen extends StatefulWidget {
   const SessionScreen.receive({
     super.key,
     required this.platform,
-    required SaveSettings this.settings,
+    required AppSettings this.settings,
     required Directory this.stagingDir,
+    this.requirePin = false,
     this.startHotspot = false,
   }) : files = const [];
 
   /// The files to share. The session owns and releases them.
   final List<SharedFile> files;
   final HostPlatform platform;
-  final SaveSettings? settings;
+  final AppSettings? settings;
   final Directory? stagingDir;
 
   /// Android: start a hotspot right away (there is no network to share).
   final bool startHotspot;
+
+  /// Guests must type a PIN, made up for this session and shown here.
+  final bool requirePin;
 
   bool get receiving => settings != null;
 
@@ -70,9 +75,13 @@ class _SessionScreenState extends State<SessionScreen> {
     if (_controller != null) return;
     final l = AppLocalizations.of(context);
     final settings = widget.settings;
+    final pin = widget.requirePin
+        ? Random.secure().nextInt(10000).toString().padLeft(4, '0')
+        : null;
     final controller = (settings == null
         ? SessionController.send(
             files: widget.files,
+            pin: pin,
             platform: widget.platform,
             notificationTitle: l.notificationTitle,
             notificationText: l.notificationText,
@@ -80,6 +89,7 @@ class _SessionScreenState extends State<SessionScreen> {
           )
         : SessionController.receive(
             stagingDir: widget.stagingDir!,
+            pin: pin,
             delivery: Delivery(platform: widget.platform, settings: settings),
             platform: widget.platform,
             notificationTitle: l.notificationReceiveTitle,
@@ -380,6 +390,10 @@ class _CodePanel extends StatelessWidget {
         const SizedBox(height: 12),
         Text(receiving ? l.receiveScanHint : l.sessionScanHint,
             textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
+        if (c.pin != null) ...[
+          const SizedBox(height: 16),
+          _PinCard(controller: c),
+        ],
         const SizedBox(height: 20),
         Text(l.sessionTypeHint,
             textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
@@ -398,6 +412,47 @@ class _CodePanel extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The session PIN, big, with wrong attempts and the lock-out if any.
+class _PinCard extends StatelessWidget {
+  const _PinCard({required this.controller});
+
+  final SessionController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final c = controller;
+    final pin = c.pin!;
+    return Card(
+      color: c.pinLockedOut ? theme.colorScheme.errorContainer : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Column(children: [
+          Text(l.sessionPinLabel, style: theme.textTheme.labelLarge),
+          Text(pin.split('').join(' '),
+              semanticsLabel: pin,
+              style: theme.textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w700, letterSpacing: 2)),
+          const SizedBox(height: 4),
+          Text(
+            c.pinLockedOut
+                ? l.sessionPinLocked
+                : c.wrongPins > 0
+                    ? l.sessionWrongPins(c.wrongPins)
+                    : l.sessionPinHint,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+                color: c.pinLockedOut || c.wrongPins > 0
+                    ? theme.colorScheme.error
+                    : null),
+          ),
+        ]),
+      ),
     );
   }
 }

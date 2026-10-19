@@ -2,6 +2,7 @@ package com.nakya.geniustransfer
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -48,6 +49,9 @@ class HostChannel(
     /** The caller of the open picker. One picker at a time, of any kind. */
     private var pendingPick: MethodChannel.Result? = null
 
+    /** Files another app shared with us, until the Dart side takes them. */
+    private var shared: List<Uri> = emptyList()
+
     init {
         channel.setMethodCallHandler(this)
         SessionService.onStopRequested = {
@@ -67,6 +71,11 @@ class HostChannel(
             "pickMedia" -> startPick(result, launchMediaPicker)
             "pickDocuments" -> startPick(result, launchDocumentPicker)
             "pickFolder" -> startPick(result, launchFolderPicker)
+            "takeSharedFiles" -> {
+                val uris = shared
+                shared = emptyList()
+                openAll(uris, result)
+            }
             "deliverFile" -> deliverFile(call, result)
             "freeBytes" -> {
                 val path = call.argument<Any>("path") as? String
@@ -152,6 +161,37 @@ class HostChannel(
     fun onPicked(uris: List<Uri>) {
         val result = pendingPick ?: return
         pendingPick = null
+        openAll(uris, result)
+    }
+
+    /**
+     * Called by MainActivity with the Intent it was started or brought back
+     * with. "Share › GeniusTransfer" from another app (ACTION_SEND or
+     * ACTION_SEND_MULTIPLE) hands us its files; the Dart side is told and
+     * takes them with takeSharedFiles, then opens the Send screen.
+     */
+    fun onIntent(intent: Intent?) {
+        if (intent == null || intent.getBooleanExtra(HANDLED, false)) return
+        val uris = sharedUris(intent)
+        if (uris.isEmpty()) return
+        // The same Intent comes back after a rotation; take its files once.
+        intent.putExtra(HANDLED, true)
+        shared = uris
+        main.post { channel.invokeMethod("sharedFilesAvailable", null) }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun sharedUris(intent: Intent): List<Uri> = when (intent.action) {
+        Intent.ACTION_SEND ->
+            listOfNotNull(intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
+        Intent.ACTION_SEND_MULTIPLE ->
+            intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.filterNotNull()
+                ?: emptyList()
+        else -> emptyList()
+    }
+
+    /** Opens [uris] on io and replies with what the Dart side needs for each. */
+    private fun openAll(uris: List<Uri>, result: MethodChannel.Result) {
         io.execute {
             val files = ArrayList<Map<String, Any?>>()
             var lastError: String? = null
@@ -283,5 +323,9 @@ class HostChannel(
     private fun safeName(raw: String): String {
         val cleaned = raw.replace(Regex("[/\\\\\\u0000-\\u001f]"), "_").trim().trim('.')
         return cleaned.ifEmpty { "file" }.take(200)
+    }
+
+    private companion object {
+        const val HANDLED = "com.nakya.geniustransfer.HANDLED"
     }
 }
