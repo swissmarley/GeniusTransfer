@@ -475,6 +475,7 @@ The host must approve every batch before any file is kept.
 |---|---|---|---|---|
 | 5.1 | Chrome on Android warns on HTTP downloads | [V] *Keep / Discard* dialog for types outside the safe list (§3.7). Private IPs aren't exempt. Strict HTTPS-First mode warns on everything | Page hint "tap **Keep**", shown only for Android and only for affected files. No ZIP for Android guests. Optional HEIC → JPEG copies for Android guests (§10) | M1: Chrome 154 + an old Chrome, Samsung Internet, every file type |
 | 5.2 | Wi-Fi without internet | **iPhone guest** [R, Apple DTS]: stays on a network it joined by hand. Traffic to the local subnet uses the direct route, so it stays on Wi-Fi even with cellular on. **Android guest** [V, AOSP source]: with mobile data **on**, cellular stays the default network, and **Chrome's requests to 192.168.x.x go out over cellular and fail**. That changes only if the user answers "Stay connected?" (shown about 8 s after joining a network they picked) or mobile data is off. With mobile data off, Wi-Fi is the default and it works | The host's 30-second help card adds: "On the other phone: if it asks *Stay connected?*, tap **Yes**, or turn off mobile data." The cross-platform cases mostly avoid this: an iPhone guest on an Android hotspot is fine; on an iPhone host's Personal Hotspot (B) the network has internet; with a guest hotspot (A) the guest owns the network. It bites in Mode 1 on an offline router | M1 (offline router), M3. Field test runs with data off, so also test with data **on** |
+| 5.3a | iPhone **host** picking from Photos: originals? | **M1, simulator [V]:** a HEIC came through as the original HEIF/HEVC bytes (checksum verified end to end). A sample JPEG came back re-encoded at the same resolution (1.85 → 1.48 MB) by Photos itself (`file_picker` only copies what Photos hands over) | If real camera JPEGs are also re-encoded, read originals with `PHAssetResourceManager` (needs Photos permission) | M1 checklist B2 |
 | 5.3 | iPhone guest uploads: original format? | [V] Photos picker → JPEG/H.264, possibly downscaled. Picker "Options" (iOS 17+) has Current / Most Compatible and a Location switch, but whether that overrides WebKit is unknown. Files-app picks are byte-for-byte. GPS has been stripped in some versions [R] | Page tip under the button: "Need original quality? Tap **Options › Current**" (if testing shows it works). Record what arrives | M2: compare format, size, EXIF and GPS against the originals |
 | 5.4 | Where downloads land on the guest | iPhone [V]: Files › Downloads, in iCloud Drive or On My iPhone depending on *Settings › Apps › Safari › Downloads*. Photos only via inline view → long-press, or Files › Share › Save. Android [V]: the public *Download* folder | Accurate per-platform text on the page. iPhone *Save to Photos* view link (M4) | M1: record the exact paths and the default setting on iOS 26 and 27, offline |
 | 5.5 | Client isolation breaks Mode 1 | Can't be detected from the host | 30-second "not opening?" card → Mode 2 | M1: test on a guest network that has isolation turned on |
@@ -498,7 +499,7 @@ All of these are widely used and actively maintained, unless flagged otherwise.
 | `file_picker` (verified publisher) | **iOS only:** picking photos, videos and files, with originals. On Android it always copies into the cache, so we use our own picker there | 13.1.0, published 2026-09, 4.9k likes ✔ (new maintainer since 2026) |
 | `ffi` (dart.dev) | Memory allocation for `pread`/`lseek` on Android file descriptors | Official Dart package ✔ |
 | `path_provider` (flutter.dev) | Temp, documents and support directories | 2.1.6 ✔ |
-| `permission_handler` (baseflow.com) | Android runtime permissions (§3.3), Photos add-only on iOS | 13.0.2 ✔ |
+| ~~`permission_handler`~~ | **Removed in M1.** Its Android part compiles against SDK "android-37", which the current SDK tools name "android-37.0", and the build fails. Our Kotlin channel requests permissions instead (notifications now, hotspot permissions in M3) | — |
 | `flutter_localizations` + `intl` (SDK / dart.dev) | Host app strings | ✔ |
 | `test`, `flutter_test`, `flutter_lints` (Dart / Flutter teams) | Tests and lints | ✔ (flutter_lints was last published 2025-05, but it's official) |
 
@@ -627,8 +628,8 @@ Each milestone ends with a stop, a demo, a commit, and a device checklist.
 
 | M | Scope | Done when |
 |---|---|---|
-| **1** | `transfer_server` with the token gate, guest send page, streaming + Range + HEAD, and tests. App: pick files (Android: own picker + file descriptor), session screen with QR and URL, IP detection, wake lock, iOS listener restart on resume, Android foreground service, 30-second help card, Stop. Both hosts | All of these download over the same Wi-Fi: a JPG, a HEIC, a ≥1 GB MP4 and a PDF, from Android host → iPhone guest and from iPhone host → Android guest. Real download locations and Chrome's warnings are recorded and put into the page text |
-| **2** | Upload: offer → approval → raw upload with progress, no-JS multipart fallback, sanitizer, limits, saving to the default locations or a custom folder the user picks (§10), tests | An iPhone guest (Photos picker *and* Files) and an Android guest upload. Format, metadata and size are recorded against the originals |
+| **1** | `transfer_server` with the token gate, guest send page, streaming + Range + HEAD, and tests. App: pick files (Android: own picker + file descriptor), session screen with QR and URL, IP detection, wake lock, iOS listener restart on resume, Android foreground service, 30-second help card, Stop. **iOS, Android, macOS and Windows hosts** (§11) | All of these download over the same Wi-Fi: a JPG, a HEIC, a ≥1 GB MP4 and a PDF, from Android host → iPhone guest and from iPhone host → Android guest. Real download locations and Chrome's warnings are recorded and put into the page text |
+| **2** | Upload: offer → approval → raw upload with progress, no-JS multipart fallback, sanitizer, limits, saving to the default locations or a custom folder the user picks (§10), tests. Same on desktop hosts (phone → computer) | An iPhone guest (Photos picker *and* Files) and an Android guest upload. Format, metadata and size are recorded against the originals |
 | **3** | Mode 2: Android local-only hotspot + Wi-Fi QR → URL QR. iPhone guided fallbacks A and B. Tests on Wi-Fi without internet | Both directions work with mobile data off on both phones |
 | **4** | Android share sheet, progress polish on both sides, PIN, approval UX polish, clear errors, iPhone guest "Save to Photos" link, received-files actions | Error paths have been walked through on devices |
 | **5** | `TESTING.md`: the field-test script with timing sheet and failure-step log, plus a manual checklist per platform | You can run the 5-person test from it |
@@ -651,6 +652,32 @@ Basic upload approval ships in M2, not M4, because uploads without approval woul
 | 8 | Google Drive baseline | Not measured separately |
 | — | Foreground service on Android | Yes, `connectedDevice`, from M1 (no objection) |
 | — | Mode 2 order on iPhone host | Keep both A and B, and decide the order after M3 tests (no objection) |
+
+---
+
+## 11. Desktop hosts: macOS and Windows (added 2026-10-19, at your request)
+
+A computer runs the same Flutter app as a host:
+
+- **Computer → phone or computer:** the computer shows the QR code; a phone scans it, another computer types the address. Milestone 1.
+- **Phone → computer:** the computer uses **Receive** and the phone (nothing installed) uploads from its browser. That is Flow B with a desktop host. Milestone 2.
+- **Phone with the app → computer without it:** already works, because the guest page works in desktop browsers.
+
+**Typing instead of scanning.** Computers have no QR scanner, so the host also shows the address grouped for typing, for example `http://192.168.1.23:8080/K7QX-ABCD-EFGH-…-YZ/`. The server ignores dashes, spaces and letter case in the token. The token stays 130 bits; nothing about the security model changes.
+
+**What differs on desktop:**
+
+| Topic | macOS | Windows |
+|---|---|---|
+| Build | On this Mac: `tool/macos_build.sh` [V, built and run] | **Needs a Windows PC** with Visual Studio 2022 "Desktop development with C++". Flutter cannot build Windows apps on a Mac. Code is in place, **not yet built or run** |
+| Incoming connections | App Sandbox entitlement `network.server` (the template's Release file lacked it; added). macOS may ask to allow incoming connections [T] | Windows Defender Firewall asks on first use. **Private networks must be allowed**; on a network marked *Public*, inbound is blocked unless allowed there too [T] |
+| Distribution | Signed for this Mac, not notarized (needs a paid account). Other Macs: Privacy & Security › "Open Anyway" | Not code-signed: SmartScreen "More info › Run anyway" |
+| Network address | `en0`/`en1`, VM `bridge*` ranked last, VPN `utun*` excluded | Adapters have localized friendly names ("Wi-Fi", "WLAN", "Ethernet", "Local Area Connection* 12" for Mobile Hotspot); virtual adapters (vEthernet, VirtualBox, VMware, Bluetooth, VPNs) excluded [T on a real PC] |
+| Several networks | The server listens on **every** usable LAN address at once; the session screen lets the user pick which one the QR code shows | same |
+| Picked files | **The user's originals: never deleted** (only iOS and Android private copies are) | same |
+| Staying alive | No backgrounding limits; the screen is kept awake during a session | same |
+| No shared network (M3) | Cannot create a hotspot from the app; join the phone's hotspot instead (guided) | Windows Mobile Hotspot exists but needs WinRT/admin work; join the phone's hotspot first, revisit later |
+| Drag and drop files onto the window | Would need a package; ask before adding (M4) | same |
 
 ---
 

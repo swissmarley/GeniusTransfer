@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "GeniusTransfer" "\0"
             VALUE "FileDescription", "GeniusTransfer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "geniustransfer" "\0"
+            VALUE "InternalName", "GeniusTransfer" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026. All rights reserved." "\0"
-            VALUE "OriginalFilename", "geniustransfer.exe" "\0"
+            VALUE "OriginalFilename", "GeniusTransfer.exe" "\0"
             VALUE "ProductName", "GeniusTransfer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
