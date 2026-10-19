@@ -53,8 +53,8 @@ class ReceivePanel extends StatelessWidget {
     final keepOpen = Platform.isIOS
         ? l.sessionKeepOpenIos
         : Platform.isAndroid
-            ? l.sessionKeepOpenAndroid
-            : l.sessionKeepOpenDesktop;
+        ? l.sessionKeepOpenAndroid
+        : l.sessionKeepOpenDesktop;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,26 +65,32 @@ class ReceivePanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(children: [
-                  Icon(
-                    c.guests.isEmpty
-                        ? Icons.hourglass_empty_rounded
-                        : Icons.phonelink_rounded,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(_status(l),
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600)),
-                  ),
-                ]),
+                Row(
+                  children: [
+                    Icon(
+                      c.guests.isEmpty
+                          ? Icons.hourglass_empty_rounded
+                          : Icons.phonelink_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _status(l),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 if (current != null) ...[
                   const SizedBox(height: 12),
                   LinearProgressIndicator(
-                      value: current.fraction,
-                      minHeight: 8,
-                      borderRadius: BorderRadius.circular(4)),
+                    value: current.fraction,
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ],
               ],
             ),
@@ -95,7 +101,9 @@ class ReceivePanel extends StatelessWidget {
         if (c.delivery?.fellBack ?? false) ...[
           const SizedBox(height: 8),
           SessionNote(
-              icon: Icons.warning_amber_rounded, text: l.receiveFolderFellBack),
+            icon: Icons.warning_amber_rounded,
+            text: l.receiveFolderFellBack,
+          ),
         ],
         const SizedBox(height: 8),
         SessionNote(icon: Icons.info_outline_rounded, text: keepOpen),
@@ -120,7 +128,8 @@ class ReceivePanel extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onStop,
           style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.error),
+            foregroundColor: theme.colorScheme.error,
+          ),
           icon: const Icon(Icons.stop_circle_outlined),
           label: Text(l.sessionStopReceiving),
         ),
@@ -150,7 +159,9 @@ class _SaveLocationNote extends StatelessWidget {
 
 /// Where received files go, in words: the chosen folder, or the default.
 Future<String> describeSaveLocation(
-    AppLocalizations l, AppSettings settings) async {
+  AppLocalizations l,
+  AppSettings settings,
+) async {
   final folder = settings.folder;
   if (folder != null) return folder.name;
   if (Platform.isAndroid) return l.saveDefaultAndroid;
@@ -177,8 +188,10 @@ class _ReceivedRowState extends State<_ReceivedRow> {
     final file = widget.file;
     setState(() => _saving = true);
     try {
-      final ok = await widget.platform
-          .saveToPhotos(file.path!, video: file.isVideo);
+      final ok = await widget.platform.saveToPhotos(
+        file.path!,
+        video: file.isVideo,
+      );
       if (ok) {
         file.savedToPhotos = true;
       } else {
@@ -186,7 +199,8 @@ class _ReceivedRowState extends State<_ReceivedRow> {
       }
     } catch (e) {
       messenger.showSnackBar(
-          SnackBar(content: Text(l.receiveSaveFailed('${file.name}: $e'))));
+        SnackBar(content: Text(l.receiveSaveFailed('${file.name}: $e'))),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -231,55 +245,71 @@ class _ReceivedRowState extends State<_ReceivedRow> {
     if (Platform.isAndroid && (file.uri?.startsWith('content:') ?? false)) {
       actions.add(TextButton(onPressed: _open, child: Text(l.receiveOpen)));
     }
-    if (Platform.isIOS && file.path != null) {
-      actions.add(IconButton(
-        tooltip: l.receiveShare,
-        icon: const Icon(Icons.ios_share_rounded),
-        onPressed: _open,
-      ));
+    // iOS: files in a folder the user picked are outside the app's
+    // sandbox; Files is the way to them.
+    final ownFile = file.savedIn == SavedIn.iosReceived && file.path != null;
+    if (Platform.isIOS && ownFile) {
+      actions.add(
+        IconButton(
+          tooltip: l.receiveShare,
+          icon: const Icon(Icons.ios_share_rounded),
+          onPressed: _open,
+        ),
+      );
     }
-    if (Platform.isIOS && file.path != null && (file.isImage || file.isVideo)) {
-      actions.add(file.savedToPhotos
-          ? Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(l.savedToPhotos,
-                  style: theme.textTheme.labelLarge
-                      ?.copyWith(color: Colors.green.shade700)),
-            )
-          : TextButton(
-              onPressed: _saving ? null : _saveToPhotos,
-              child: Text(l.saveToPhotos),
-            ));
+    if (Platform.isIOS && ownFile && (file.isImage || file.isVideo)) {
+      actions.add(
+        file.savedToPhotos
+            ? Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  l.savedToPhotos,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              )
+            : TextButton(
+                onPressed: _saving ? null : _saveToPhotos,
+                child: Text(l.saveToPhotos),
+              ),
+      );
     }
     if ((Platform.isMacOS || Platform.isWindows) && file.path != null) {
-      actions.add(IconButton(
-        tooltip: Platform.isMacOS ? l.showInFinder : l.showInFolder,
-        icon: const Icon(Icons.folder_open_outlined),
-        onPressed: _reveal,
-      ));
+      actions.add(
+        IconButton(
+          tooltip: Platform.isMacOS ? l.showInFinder : l.showInFolder,
+          icon: const Icon(Icons.folder_open_outlined),
+          onPressed: _reveal,
+        ),
+      );
     }
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
-        child: Row(children: [
-          FileBadge(name: file.name),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(file.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('${formatBytes(file.size)} · $where',
+        child: Row(
+          children: [
+            FileBadge(name: file.name),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(file.name, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${formatBytes(file.size)} · $where',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall),
-              ],
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-          ),
-          ...actions,
-        ]),
+            ...actions,
+          ],
+        ),
       ),
     );
   }
@@ -314,7 +344,8 @@ class _OfferSheetState extends State<OfferSheet> {
 
   void _check() {
     final c = widget.controller;
-    final gone = c.pendingOffer?.id != widget.offer.id ||
+    final gone =
+        c.pendingOffer?.id != widget.offer.id ||
         c.phase == SessionPhase.stopped;
     if (gone) _close(null);
   }
@@ -332,62 +363,78 @@ class _OfferSheetState extends State<OfferSheet> {
     final offer = widget.offer;
     const shown = 6;
     final files = offer.files;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l.offerTitle(offer.device.label, files.length),
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(l.offerTotal(formatBytes(offer.totalBytes)),
-              style: theme.textTheme.bodyLarge),
-          const SizedBox(height: 12),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
+    // Back must not dismiss it: the offer would be left unanswered.
+    return PopScope(
+      canPop: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l.offerTitle(offer.device.label, files.length),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l.offerTotal(formatBytes(offer.totalBytes)),
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final f in files.take(shown))
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: FileBadge(name: f.name),
+                      title: Text(
+                        f.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(formatBytes(f.size)),
+                    ),
+                  if (files.length > shown)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(l.offerMore(files.length - shown)),
+                    ),
+                ],
+              ),
+            ),
+            if (offer.quarantined) ...[
+              const SizedBox(height: 8),
+              SessionNote(
+                icon: Icons.inventory_2_outlined,
+                text: l.offerAlreadyHere,
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
               children: [
-                for (final f in files.take(shown))
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: FileBadge(name: f.name),
-                    title: Text(f.name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(formatBytes(f.size)),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _close(false),
+                    child: Text(l.offerDecline),
                   ),
-                if (files.length > shown)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(l.offerMore(files.length - shown)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => _close(true),
+                    child: Text(l.offerAccept),
                   ),
+                ),
               ],
             ),
-          ),
-          if (offer.quarantined) ...[
-            const SizedBox(height: 8),
-            SessionNote(
-                icon: Icons.inventory_2_outlined, text: l.offerAlreadyHere),
           ],
-          const SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _close(false),
-                child: Text(l.offerDecline),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton(
-                onPressed: () => _close(true),
-                child: Text(l.offerAccept),
-              ),
-            ),
-          ]),
-        ],
+        ),
       ),
     );
   }

@@ -164,7 +164,8 @@ extension _Uploads on TransferServer {
     }
 
     final total = files.fold<int>(0, (sum, f) => sum + f.size);
-    final error = await _checkLimits(files.length, total);
+    final largest = files.fold<int>(0, (m, f) => f.size > m ? f.size : m);
+    final error = await _checkLimits(files.length, total, largest: largest);
     if (error != null) {
       return _sendJson(request, _limitStatus(error), {'error': error});
     }
@@ -189,9 +190,14 @@ extension _Uploads on TransferServer {
 
   Future<void> _handleUpload(
       HttpRequest request, _Batch batch, int index) async {
-    if (batch.received.contains(index) || batch.uploading.contains(index)) {
+    if (batch.received.contains(index)) {
       return _sendJson(
           request, HttpStatus.conflict, {'error': 'already_received'});
+    }
+    if (batch.uploading.contains(index)) {
+      // A retry while the first try is still open (the guest's Wi-Fi
+      // dropped): that one stalls out soon, then the guest tries again.
+      return _sendJson(request, HttpStatus.conflict, {'error': 'in_progress'});
     }
     if (batch.quarantined || batch.state != OfferState.accepted) {
       return _sendJson(
@@ -266,7 +272,8 @@ extension _Uploads on TransferServer {
       return _sendWaitMessage(request, HttpStatus.lengthRequired, strings,
           strings.get('receive_failed'));
     }
-    final limit = await _checkLimits(0, request.contentLength);
+    final limit = await _checkLimits(0, request.contentLength,
+        largest: request.contentLength);
     if (limit != null) {
       return _sendWaitMessage(
           request, _limitStatus(limit), strings, _limitText(limit, strings));
@@ -359,8 +366,13 @@ extension _Uploads on TransferServer {
 
   Future<void> _sendWaitMessage(HttpRequest request, int status,
       GuestStrings strings, String title) {
+    // Served at <T>/u, so "./" leads back to the upload page.
     final html = renderWaitPage(
-        title: title, body: '', refresh: false, strings: strings);
+        title: title,
+        body: '',
+        refresh: false,
+        strings: strings,
+        moreHref: './');
     final response = request.response
       ..statusCode = status
       ..headers.contentType = ContentType.html
@@ -456,12 +468,21 @@ extension _Uploads on TransferServer {
 
   /// Null if a batch of [count] files and [bytes] bytes may be offered now,
   /// else the error code for the guest.
-  Future<String?> _checkLimits(int count, int bytes) async {
+  Future<String?> _checkLimits(int count, int bytes, {int largest = 0}) async {
     if (_batches.values.any((b) => b.isOpen)) return 'busy';
     if (count > _options.maxFiles) return 'too_many_files';
     if (bytes > _options.maxBatchBytes) return 'too_large';
     final free = await _options.freeBytes?.call();
-    if (free != null && bytes + _options.reserveBytes > free) {
+    // Files of accepted batches that have not arrived yet still need room.
+    var owed = 0;
+    for (final b in _batches.values) {
+      if (b.state != OfferState.accepted) continue;
+      for (var i = 0; i < b.files.length; i++) {
+        if (!b.received.contains(i)) owed += b.files[i].size;
+      }
+    }
+    final copy = _options.copyOnDelivery ? largest : 0;
+    if (free != null && bytes + owed + copy + _options.reserveBytes > free) {
       return 'no_space';
     }
     // Another offer may have arrived while we asked for the free space.
@@ -508,7 +529,9 @@ extension _Uploads on TransferServer {
     var lastReport = DateTime.now();
     final sink = file.openWrite();
     try {
-      await sink.addStream(source.map((chunk) {
+      // A guest that stops sending (Wi-Fi gone, page closed) must not hold
+      // the file open forever.
+      await sink.addStream(source.timeout(_options.stallTimeout).map((chunk) {
         onChunk?.call(chunk.length);
         received += chunk.length;
         final now = DateTime.now();

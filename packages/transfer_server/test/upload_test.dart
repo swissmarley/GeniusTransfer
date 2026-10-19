@@ -83,7 +83,8 @@ void main() {
         {int maxFiles = 500,
         int maxBatchBytes = 20000000000,
         Duration offerTimeout = const Duration(minutes: 10),
-        Duration longPoll = const Duration(seconds: 20)}) async {
+        Duration longPoll = const Duration(seconds: 20),
+        Duration stall = const Duration(seconds: 30)}) async {
       final s = TransferServer(
         mode: SessionMode.receive,
         receiveOptions: ReceiveOptions(
@@ -94,6 +95,7 @@ void main() {
           reserveBytes: 1000,
           offerTimeout: offerTimeout,
           longPollTimeout: longPoll,
+          stallTimeout: stall,
         ),
         config: const ServerConfig(
             preferredPort: 0, progressInterval: Duration.zero),
@@ -401,6 +403,50 @@ void main() {
 
       expect((await upload(id, 0, pattern(100000))).status, 200);
       expect((await poll(id))['state'], 'done');
+    });
+
+    test('a stalled upload is dropped; a retry meanwhile hears in_progress',
+        () async {
+      await server.stop();
+      server = await startReceiving(stall: const Duration(milliseconds: 400));
+      t = server.token;
+      events = recordEvents(server);
+      final id = await offerId([
+        {'name': 'big.bin', 'size': 100000, 'type': ''}
+      ]);
+      await server.approveUpload(id);
+      final socket = await Socket.connect(loopback, server.port!);
+      socket.add(ascii.encode('POST /$t/u/$id/0 HTTP/1.1\r\n'
+          'Host: 127.0.0.1:${server.port}\r\n'
+          'Content-Length: 100000\r\n\r\n'));
+      socket.add(pattern(5000));
+      await socket.flush();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final early = await upload(id, 0, pattern(100000));
+      expect(early.status, 409);
+      expect(jsonDecode(early.text), {'error': 'in_progress'});
+      // The half-open upload stalls out, so the retry goes through.
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      expect(File('${staging.path}/$id/.part-0').existsSync(), isFalse);
+      expect((await upload(id, 0, pattern(100000))).status, 200);
+      socket.destroy();
+    });
+
+    test('free space counts files still owed by accepted batches', () async {
+      freeBytes = 1000 + 3000; // Reserve 1000: room for 3000 bytes.
+      final first = await offerId([
+        {'name': 'a', 'size': 2000, 'type': ''}
+      ]);
+      await server.approveUpload(first);
+      final r = await offer([
+        {'name': 'b', 'size': 1500, 'type': ''}
+      ]);
+      expect(r.status, 507, reason: '2000 owed + 1500 > 3000');
+      expect((await upload(first, 0, pattern(2000))).status, 200);
+      final later = await offer([
+        {'name': 'b', 'size': 1500, 'type': ''}
+      ]);
+      expect(later.status, 200);
     });
 
     test('stop deletes partial files and keeps finished ones', () async {

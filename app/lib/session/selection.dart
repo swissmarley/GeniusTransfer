@@ -153,9 +153,9 @@ Future<SharedFile?> makeJpegCopy(HostPlatform platform, SharedFile heic) async {
     _ => null,
   };
   if (source == null) return null;
-  final dir = await Directory(
-          '${(await getTemporaryDirectory()).path}/jpeg')
-      .createTemp();
+  final root = Directory('${(await getTemporaryDirectory()).path}/jpeg');
+  await root.create(recursive: true);
+  final dir = await root.createTemp();
   final name = jpegName(heic.name);
   final target = '${dir.path}/$name';
   if (!await platform.convertToJpeg(source, target)) {

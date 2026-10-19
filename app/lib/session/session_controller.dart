@@ -97,6 +97,8 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
           receiveOptions: ReceiveOptions(
             stagingDir: stagingDir,
             freeBytes: () => platform.freeBytes(stagingDir.path),
+            // MediaStore takes a copy before the staged file is deleted.
+            copyOnDelivery: Platform.isAndroid,
           ),
         ),
         progress = const [];
@@ -255,12 +257,16 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     await server.declineUpload(offer.id);
   }
 
+  /// The previous session's clean-up (it can outlive its screen: saving
+  /// what arrived, stopping the service). The next session waits for it.
+  static Future<void> _lastStop = Future.value();
+
   Future<void> start() async {
+    await _lastStop;
+    if (phase == SessionPhase.stopped) return;
     WidgetsBinding.instance.addObserver(this);
     final staging = stagingDir;
     if (staging != null) {
-      // Leftovers from a session that did not end cleanly.
-      if (await staging.exists()) await staging.delete(recursive: true);
       await staging.create(recursive: true);
       await platform.requestStoragePermission();
     }
@@ -275,6 +281,13 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
           title: notificationTitle,
           text: notificationText,
           stop: notificationStop);
+      if (phase == SessionPhase.stopped) {
+        // Stopped while starting: stop() has run already; undo what came
+        // after it.
+        await platform.stopSessionService();
+        await WakelockPlus.disable();
+        return;
+      }
       final found = await findLanAddresses();
       if (found.isEmpty) {
         phase = SessionPhase.noNetwork;
@@ -325,6 +338,11 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
       final before = (await findLanAddresses()).toSet();
       try {
         hotspot = await platform.startHotspot();
+        if (phase == SessionPhase.stopped) {
+          hotspot = null;
+          await platform.stopHotspot();
+          return;
+        }
       } on HotspotException catch (e) {
         debugPrint('Hotspot failed: $e');
         hotspotFailure = e.failure;
@@ -586,8 +604,14 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Ends the session: closes the server and every connection, releases the
   /// files and the wake lock, stops the foreground service.
-  Future<void> stop(StopReason reason) async {
-    if (phase == SessionPhase.stopped) return;
+  Future<void> stop(StopReason reason) {
+    if (phase == SessionPhase.stopped) return _lastStop;
+    final done = _stop(reason);
+    _lastStop = done;
+    return done;
+  }
+
+  Future<void> _stop(StopReason reason) async {
     phase = SessionPhase.stopped;
     stopReason = reason;
     notifyListeners();
@@ -599,7 +623,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
       ..onHotspotStopped = null;
     await _events?.cancel();
     await server.stop();
-    if (hotspot != null) {
+    if (hotspot != null || startingHotspot) {
       hotspot = null;
       await platform.stopHotspot();
     }
@@ -616,7 +640,9 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     await platform.stopSessionService();
     await platform.endBackgroundTask();
     await WakelockPlus.disable();
-    await cleanUpTemporaryFiles(platform);
+    // Picker copies belong to sending; a receiving session has none, and a
+    // new Send may be picking files right now.
+    if (mode == SessionMode.send) await cleanUpTemporaryFiles(platform);
   }
 
   bool _disposed = false;

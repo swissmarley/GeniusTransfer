@@ -297,6 +297,7 @@ String renderWaitPage({
   required String body,
   required bool refresh,
   required GuestStrings strings,
+  String moreHref = '../',
 }) {
   return '<!DOCTYPE html>'
       '<html lang="${strings.languageCode}"><head>'
@@ -309,7 +310,7 @@ String renderWaitPage({
       '<style>$_css</style></head><body><main class="wrap">'
       '<h1>${escapeHtml(title)}</h1>'
       '${body.isEmpty ? '' : '<p class="sub">${escapeHtml(body)}</p>'}'
-      '${refresh ? '' : '<a class="dl" href="../">${escapeHtml(strings.get('receive_more'))}</a>'}'
+      '${refresh ? '' : '<a class="dl" href="${escapeHtml(moreHref)}">${escapeHtml(strings.get('receive_more'))}</a>'}'
       '</main></body></html>';
 }
 
@@ -461,8 +462,9 @@ x.open('POST','u/'+id+'/'+i,true);
 if(x.upload)x.upload.onprogress=function(e){if(e.lengthComputable&&e.total>0)row.fill.style.width=Math.floor(e.loaded*100/e.total)+'%';};
 x.onreadystatechange=function(){
 if(x.readyState!==4)return;
-if(x.status===200||x.status===409){sent(row);send(id,files,i+1,done,0);return;}
-if(x.status===0&&fails<3){setTimeout(function(){send(id,files,i,done,fails+1);},2000);return;}
+var err='';try{err=JSON.parse(x.responseText).error;}catch(e){}
+if(x.status===200||(x.status===409&&err!=='in_progress')){sent(row);send(id,files,i+1,done,0);return;}
+if((x.status===0||err==='in_progress')&&fails<12){setTimeout(function(){send(id,files,i,done,fails+1);},3000);return;}
 finish(t('failed'),'warn');
 };
 x.setRequestHeader('Content-Type','application/octet-stream');

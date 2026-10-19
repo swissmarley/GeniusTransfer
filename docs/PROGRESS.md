@@ -15,6 +15,39 @@ Conventions for this run:
 - Decisions taken without you are listed under each milestone so you can
   overrule them in the morning.
 
+## Review fixes (after M5)
+
+Two independent reviews of tonight's code (one for Dart and the server,
+one for Kotlin and Swift) found real bugs, now fixed:
+
+- **"Download as JPG" never worked:** its temporary folder was never
+  created. Fixed. My earlier macOS 404 on that link was this bug, not only
+  the fake test photo.
+- **Uploads:** a retry while a dropped upload was still half-open was
+  shown as "sent" to the guest. Now the server answers `in_progress`, the
+  page retries, and a stalled upload is dropped after 30 seconds.
+- **Two sessions back to back** could delete each other's received files,
+  or stop the new session's foreground service. Each session now has its
+  own staging folder, and a new session waits for the previous one's
+  clean-up.
+- **Android back** could dismiss the approval sheet and leave the offer
+  unanswered. A stop from the notification could close the wrong screen.
+- **Free space** now also counts files still owed by accepted batches,
+  plus room for Android's copy step.
+- **Android:**
+  - the hotspot permission could never be granted on Android 12;
+  - permission dialogs overlapped and cancelled the hotspot's;
+  - a share from another app started a second app instance;
+  - stopping during hotspot start left the hotspot on.
+- **iPhone:** Save to Photos and Share are now offered only for files in
+  the app's own Received folder. Files saved into a picked folder are
+  outside its sandbox.
+- **Small fixes:** the PIN lock-out is checked again after reading the
+  form; one wrong "Send more files" link.
+
+Verified after the fixes: 130 server tests, 16 app tests, macOS receive
+self-test (5 files intact), APK and iOS Simulator builds.
+
 ## Morning summary (2026-10-20)
 
 All milestones are built, committed and pushed to `origin/main`:

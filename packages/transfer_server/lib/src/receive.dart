@@ -13,6 +13,8 @@ class ReceiveOptions {
     this.reserveBytes = 1000000000,
     this.offerTimeout = const Duration(minutes: 10),
     this.longPollTimeout = const Duration(seconds: 20),
+    this.stallTimeout = const Duration(seconds: 30),
+    this.copyOnDelivery = false,
   });
 
   /// Where uploads are written. Each batch gets its own folder:
@@ -37,6 +39,14 @@ class ReceiveOptions {
 
   /// How long `GET offer/<id>` waits for a decision before answering.
   final Duration longPollTimeout;
+
+  /// An upload that sends nothing for this long is dropped, so a guest
+  /// whose Wi-Fi dropped can send the file again.
+  final Duration stallTimeout;
+
+  /// The host copies each file once more when it puts it in place (Android
+  /// MediaStore), so a batch needs room for its largest file twice.
+  final bool copyOnDelivery;
 }
 
 /// A file a guest wants to send: its sanitized name and declared size.

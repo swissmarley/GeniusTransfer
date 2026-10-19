@@ -139,7 +139,12 @@ class _SessionScreenState extends State<SessionScreen> {
             content: Text(
                 AppLocalizations.of(context).sessionStartFailed(c.error ?? ''))));
       }
-      Navigator.of(context).pop(c.stopReason);
+      // Close this screen, and anything on top of it (the offer sheet, the
+      // guide): the session may end from the notification or by itself.
+      final navigator = Navigator.of(context);
+      final route = ModalRoute.of(context);
+      navigator.popUntil((r) => r == route);
+      navigator.pop(c.stopReason);
       return;
     }
     if (!mounted) return;

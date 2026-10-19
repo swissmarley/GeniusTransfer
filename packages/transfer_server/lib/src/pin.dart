@@ -48,6 +48,11 @@ extension _Pin on TransferServer {
           status: HttpStatus.forbidden);
     }
     final body = await _readPinForm(request);
+    // Other guesses may have arrived while this body was being read.
+    if (_pinFailures >= maxPinAttempts) {
+      return _sendPinPage(request, strings, tokenSegment,
+          status: HttpStatus.forbidden);
+    }
     final entered = (body == null ? '' : body['pin'] ?? '').trim();
     if (_sameDigits(entered, pin!)) {
       final grant = _nonce();

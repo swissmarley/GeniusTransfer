@@ -193,10 +193,27 @@ class Delivery {
       path.split(Platform.isWindows ? RegExp(r'[\\/]') : RegExp('/')).last;
 }
 
-/// Where a receiving session writes uploads before they are accepted and
-/// moved: private to the app, and emptied at the start and end of each
-/// session.
+/// Where a receiving session writes uploads before they are moved to their
+/// place: a folder of its own under `incoming/`, private to the app and
+/// deleted when the session ends (the next session may already be running).
 Future<Directory> receiveStagingDir() async {
+  final root = await _incomingRoot();
+  await root.create(recursive: true);
+  return root.createTemp('session-');
+}
+
+/// At launch no session runs: whatever is left in `incoming/` comes from a
+/// crash and can go.
+Future<void> clearReceiveStaging() async {
+  try {
+    final root = await _incomingRoot();
+    if (await root.exists()) await root.delete(recursive: true);
+  } catch (e) {
+    debugPrint('Could not clear old uploads: $e');
+  }
+}
+
+Future<Directory> _incomingRoot() async {
   final support = await getApplicationSupportDirectory();
   return Directory('${support.path}${Platform.pathSeparator}incoming');
 }

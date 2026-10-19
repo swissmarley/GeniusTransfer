@@ -54,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _takingShared = true;
     try {
       final shared = await platform.takeSharedFiles();
+      // Released before Send opens, so a share during that session is
+      // picked up when it ends.
+      _takingShared = false;
       if (shared.isNotEmpty && mounted) await _send(context, shared: shared);
     } catch (e) {
       debugPrint('Could not open shared files: $e');
