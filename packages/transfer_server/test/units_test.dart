@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:test/test.dart';
 import 'package:transfer_server/src/range.dart';
+import 'package:transfer_server/src/token.dart' show tokenMatches;
 import 'package:transfer_server/transfer_server.dart';
 
 import 'helpers.dart';
@@ -14,6 +15,17 @@ void main() {
       expect(token, hasLength(tokenLength));
       expect(token, matches(RegExp(r'^[A-Z2-7]{26}$')));
       expect(tokenLength * 5, greaterThanOrEqualTo(128));
+    });
+
+    test('can be typed in groups, with any case', () {
+      const token = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      expect(groupToken(token), 'ABCD-EFGH-IJKL-MNOP-QRST-UVWX-YZ');
+      expect(tokenMatches(groupToken(token), token), isTrue);
+      expect(tokenMatches('abcd-efgh-ijkl-mnop-qrst-uvwx-yz', token), isTrue);
+      expect(tokenMatches('ABCD EFGH IJKL MNOP QRST UVWX YZ', token), isTrue);
+      expect(tokenMatches('ABCD-EFGH-IJKL-MNOP-QRST-UVWX-YA', token), isFalse);
+      expect(tokenMatches('ABCD-EFGH', token), isFalse);
+      expect(tokenMatches('ABCDEFGHIJKLMNOPQRSTUVWXYZA', token), isFalse);
     });
 
     test('is different every time', () {

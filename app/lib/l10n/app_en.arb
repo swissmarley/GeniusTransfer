@@ -1,0 +1,128 @@
+{
+  "@@locale": "en",
+  "appTitle": "GeniusTransfer",
+  "homeSend": "Send files",
+  "homeSendHint": "The other device downloads them in its browser. It doesn't need this app.",
+  "homeReceive": "Receive files",
+  "homeReceiveSoon": "Coming in the next version.",
+  "homeNoNetwork": "Not connected to a network. Connect both devices to the same Wi-Fi.",
+  "homeNetwork": "{kind} ready · {address}",
+  "@homeNetwork": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "homeOffline": "Works without internet. Nothing goes through the cloud.",
+  "networkWifi": "Wi-Fi",
+  "networkWired": "Network cable",
+  "networkHotspot": "Hotspot",
+  "networkOther": "Network",
+  "sendTitle": "Choose what to send",
+  "sendPickMedia": "Photos & videos",
+  "sendPickFiles": "Files",
+  "sendEmpty": "Nothing chosen yet. Add photos, videos or files.",
+  "sendSummary": "{count, plural, =1{1 file} other{{count} files}} · {size}",
+  "@sendSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "sendStart": "Show the code",
+  "sendPreparing": "Preparing…",
+  "sendRemove": "Remove {name}",
+  "@sendRemove": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sendPickFailed": "Couldn't add those files: {error}",
+  "@sendPickFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sendNeedsWifi": "Connect to Wi-Fi first. Both phones must be on the same network.",
+  "sessionTitle": "Scan this with the other phone",
+  "sessionScanHint": "Open the camera on the other phone and point it at the code. Then tap Download there.",
+  "sessionTypeHint": "Computer or no camera? Type this in its browser:",
+  "sessionShownNetwork": "Code for: {network}",
+  "@sessionShownNetwork": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionWaiting": "Waiting for the other phone…",
+  "sessionConnected": "Connected: {device}",
+  "@sessionConnected": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionSending": "Sending {name} · {percent}%",
+  "@sessionSending": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionDoneCount": "Downloaded {done} of {total}",
+  "@sessionDoneCount": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionFileDone": "Downloaded",
+  "sessionFileWaiting": "Not downloaded yet",
+  "sessionStop": "Stop sharing",
+  "sessionKeepOpenIos": "Keep this screen open. If you leave the app, transfers pause until you come back.",
+  "sessionKeepOpenAndroid": "Keep GeniusTransfer open until the other phone is done.",
+  "sessionKeepOpenDesktop": "Keep this window open until the other device is done.",
+  "sessionPaused": "Paused while the app was in the background. Ready again.",
+  "sessionNoNetwork": "Wi-Fi was lost. Reconnect to the same Wi-Fi to keep sharing.",
+  "sessionIdleStopped": "Sharing stopped after 30 minutes without activity.",
+  "sessionStartFailed": "Couldn't start sharing: {error}",
+  "@sessionStartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionFiles": "Files",
+  "helpTitle": "Not opening on the other phone?",
+  "helpSameWifi": "Both phones must be on the same Wi-Fi network.",
+  "helpIsolation": "Guest, hotel and café Wi-Fi often stop phones from seeing each other. Try another network or a phone's hotspot. A built-in hotspot mode is coming in a later version.",
+  "helpStayConnected": "If the other phone says the Wi-Fi has no internet and asks to stay connected, tap Yes, or turn off its mobile data.",
+  "helpTypeAddress": "No QR scanner? Type the address shown under the code into the browser. Capital letters and dashes are optional.",
+  "helpFirewall": "If this computer asks whether GeniusTransfer may accept incoming connections or use the network, choose Allow. On Windows, allow it for private networks.",
+  "notificationTitle": "Sharing files",
+  "notificationText": "Keep GeniusTransfer open until the other phone is done.",
+  "notificationStop": "Stop"
+}

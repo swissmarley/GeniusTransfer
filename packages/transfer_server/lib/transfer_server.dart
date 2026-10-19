@@ -11,5 +11,5 @@ export 'src/guest_strings.dart' show GuestStrings;
 export 'src/net_util.dart' show isLanAddress, isPrivateIpv4;
 export 'src/server.dart' show ServerConfig, TransferServer;
 export 'src/shared_file.dart';
-export 'src/token.dart' show generateToken, tokenLength;
+export 'src/token.dart' show generateToken, groupToken, tokenLength;
 export 'src/user_agent.dart';

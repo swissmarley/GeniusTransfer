@@ -187,7 +187,7 @@ a.dl:active{background:#1646b3}
 .status.on{display:block}
 .foot{margin:18px 0 0;color:#4a505c}
 .small{font-size:14px;color:#6b7280}
-.banner{position:fixed;left:0;right:0;top:0;z-index:9;padding:12px 16px;background:#b42318;color:#fff;font-weight:600;text-align:center}
+.banner{position:-webkit-sticky;position:sticky;top:0;z-index:9;padding:12px 16px;background:#b42318;color:#fff;font-weight:600;text-align:center}
 .banner.ended{background:#3b3f46}
 .hidden{display:none}
 @media (prefers-color-scheme:dark){
@@ -210,7 +210,7 @@ if(where&&b.getAttribute('data-ipad')&&navigator.maxTouchPoints>1){where.textCon
 var links=document.getElementsByTagName('a');
 for(var i=0;i<links.length;i++){
 if((' '+links[i].className+' ').indexOf(' dl ')<0)continue;
-links[i].onclick=function(){var s=document.getElementById(this.getAttribute('data-s'));if(s){s.textContent=b.getAttribute('data-started');s.className='status on';}};
+links[i].onclick=function(){var s=document.getElementById(this.getAttribute('data-s'));if(s){s.textContent=b.getAttribute('data-started')+(where?' '+where.textContent:'');s.className='status on';}};
 }
 function show(text,ended){banner.textContent=text;banner.className=ended?'banner ended':'banner';}
 var failures=0,stopped=false;

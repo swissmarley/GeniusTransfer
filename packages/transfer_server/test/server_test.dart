@@ -47,6 +47,12 @@ void main() {
       expect(r.status, 200);
     });
 
+    test('the grouped, typeable form of the token works', () async {
+      final r = await send(server, '/${groupToken(t).toLowerCase()}/');
+      expect(r.status, 200);
+      expect(r.text, contains('IMG_0412.HEIC'));
+    });
+
     test('without the trailing slash, redirects to it', () async {
       final r = await send(server, '/$t');
       expect(r.status, 302);

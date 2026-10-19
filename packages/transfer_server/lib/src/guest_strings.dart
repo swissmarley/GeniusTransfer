@@ -77,9 +77,9 @@ const _en = <String, String>{
   'send_heading_one': '1 file for you',
   'send_heading_other': '{count} files for you',
   'send_total': '{size} in total',
-  'send_tap_download': 'Tap Download to save a file on this phone.',
+  'send_tap_download': 'Tap Download to save a file here.',
   'download_button': 'Download',
-  'download_started': 'Downloading… See below for where it goes.',
+  'download_started': 'Download started.',
   'send_empty': 'Nothing is being shared right now.',
   'keep_page_open': 'Keep this page open until your downloads have finished.',
 
@@ -101,20 +101,22 @@ const _en = <String, String>{
   // except common photo, video and audio types.
   'chrome_keep_hint':
       'Chrome may say “File can’t be downloaded securely”. That is expected '
-          'here, because the file comes straight from the other phone without '
-          'the internet. Tap Keep to save it.',
+          'here: the file comes straight from the other device, without the '
+          'internet. Tap Keep to save it.',
 
   // Connection state, updated by the page while it is open.
   'connection_lost':
-      'Can’t reach the other phone. Keep it unlocked, with GeniusTransfer open.',
-  'session_ended': 'The other phone has stopped sharing.',
+      'Can’t reach the other device. Keep it on and unlocked, with '
+          'GeniusTransfer open.',
+  'session_ended': 'The other device has stopped sharing.',
 
   // Shown for old or wrong links.
   'expired_title': 'This link has expired',
-  'expired_body': 'Ask the other phone to show a new code, then scan it again.',
+  'expired_body':
+      'Ask for a new code on the other device, then scan or type it again.',
   'not_found': 'Not found.',
 
-  'footer': 'Sent directly from the other phone. No internet, no cloud.',
+  'footer': 'Sent directly from the other device. No internet, no cloud.',
 
   // File sizes.
   'size_bytes': '{n} bytes',
