@@ -254,6 +254,22 @@ class HostPlatform {
         false;
   }
 
+  /// Android: opens a received file (content [uri]) in another app.
+  /// Returns false if no app can open it.
+  Future<bool> openFile(String uri, String mime) async {
+    if (!Platform.isAndroid) return false;
+    return await _channel
+            .invokeMethod<bool>('openFile', {'uri': uri, 'mime': mime}) ??
+        false;
+  }
+
+  /// iOS: the share sheet for a received file (open in, save, AirDrop).
+  Future<void> shareFile(String path) async {
+    if (Platform.isIOS) {
+      await _channel.invokeMethod<void>('shareFile', {'path': path});
+    }
+  }
+
   /// macOS: shows [path] selected in a Finder window.
   Future<void> revealInFinder(String path) async {
     if (Platform.isMacOS) {

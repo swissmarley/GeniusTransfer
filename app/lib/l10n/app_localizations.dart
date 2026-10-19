@@ -873,6 +873,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else.'**
   String get sessionPinLocked;
+
+  /// No description provided for @receiveOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get receiveOpen;
+
+  /// No description provided for @receiveShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share or open in…'**
+  String get receiveShare;
+
+  /// No description provided for @receiveNoApp.
+  ///
+  /// In en, this message translates to:
+  /// **'No app on this phone can open this kind of file.'**
+  String get receiveNoApp;
 }
 
 class _AppLocalizationsDelegate

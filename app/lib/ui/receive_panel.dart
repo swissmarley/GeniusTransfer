@@ -192,6 +192,23 @@ class _ReceivedRowState extends State<_ReceivedRow> {
     }
   }
 
+  Future<void> _open() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final file = widget.file;
+    try {
+      if (Platform.isAndroid) {
+        if (!await widget.platform.openFile(file.uri!, file.mime)) {
+          messenger.showSnackBar(SnackBar(content: Text(l.receiveNoApp)));
+        }
+      } else {
+        await widget.platform.shareFile(file.path!);
+      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
   Future<void> _reveal() async {
     final path = widget.file.path!;
     if (Platform.isMacOS) {
@@ -210,9 +227,19 @@ class _ReceivedRowState extends State<_ReceivedRow> {
         ? l.saveDefaultIos
         : file.location;
 
-    Widget? action;
+    final actions = <Widget>[];
+    if (Platform.isAndroid && (file.uri?.startsWith('content:') ?? false)) {
+      actions.add(TextButton(onPressed: _open, child: Text(l.receiveOpen)));
+    }
+    if (Platform.isIOS && file.path != null) {
+      actions.add(IconButton(
+        tooltip: l.receiveShare,
+        icon: const Icon(Icons.ios_share_rounded),
+        onPressed: _open,
+      ));
+    }
     if (Platform.isIOS && file.path != null && (file.isImage || file.isVideo)) {
-      action = file.savedToPhotos
+      actions.add(file.savedToPhotos
           ? Padding(
               padding: const EdgeInsets.all(8),
               child: Text(l.savedToPhotos,
@@ -222,13 +249,14 @@ class _ReceivedRowState extends State<_ReceivedRow> {
           : TextButton(
               onPressed: _saving ? null : _saveToPhotos,
               child: Text(l.saveToPhotos),
-            );
-    } else if ((Platform.isMacOS || Platform.isWindows) && file.path != null) {
-      action = IconButton(
+            ));
+    }
+    if ((Platform.isMacOS || Platform.isWindows) && file.path != null) {
+      actions.add(IconButton(
         tooltip: Platform.isMacOS ? l.showInFinder : l.showInFolder,
         icon: const Icon(Icons.folder_open_outlined),
         onPressed: _reveal,
-      );
+      ));
     }
 
     return Card(
@@ -250,7 +278,7 @@ class _ReceivedRowState extends State<_ReceivedRow> {
               ],
             ),
           ),
-          ?action,
+          ...actions,
         ]),
       ),
     );

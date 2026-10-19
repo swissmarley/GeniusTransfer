@@ -509,4 +509,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sessionPinLocked =>
       'Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else.';
+
+  @override
+  String get receiveOpen => 'Open';
+
+  @override
+  String get receiveShare => 'Share or open in…';
+
+  @override
+  String get receiveNoApp => 'No app on this phone can open this kind of file.';
 }

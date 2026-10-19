@@ -287,5 +287,8 @@
       }
     }
   },
-  "sessionPinLocked": "Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else."
+  "sessionPinLocked": "Locked after 5 wrong PINs: nobody else can join. Stop and start again to share with someone else.",
+  "receiveOpen": "Open",
+  "receiveShare": "Share or open in…",
+  "receiveNoApp": "No app on this phone can open this kind of file."
 }

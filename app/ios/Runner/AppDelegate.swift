@@ -77,6 +77,9 @@ final class HostChannel: NSObject, FlutterPlugin {
         let reply = SaveFolder.deliver(source: source, name: name, bookmark: folder)
         DispatchQueue.main.async { result(reply) }
       }
+    case "shareFile":
+      guard let path = args["path"] as? String else { return result(Self.badArgs(call)) }
+      shareFile(path: path, result: result)
     case "convertToJpeg":
       guard let source = args["source"] as? String, let target = args["target"] as? String
       else { return result(Self.badArgs(call)) }
@@ -111,6 +114,25 @@ final class HostChannel: NSObject, FlutterPlugin {
   }
 
   /// Shows the Files folder picker. Replies nil if the user cancels.
+  /// The share sheet for a received file: open it in another app, save it
+  /// elsewhere, AirDrop it…
+  private func shareFile(path: String, result: @escaping FlutterResult) {
+    guard let presenter = Self.topViewController() else {
+      return result(FlutterError(code: "failed", message: "No window to show it in.", details: nil))
+    }
+    let sheet = UIActivityViewController(
+      activityItems: [URL(fileURLWithPath: path)], applicationActivities: nil)
+    if let popover = sheet.popoverPresentationController {
+      // iPad: a popover needs an anchor; use the middle of the screen.
+      let view = presenter.view!
+      popover.sourceView = view
+      popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+      popover.permittedArrowDirections = []
+    }
+    presenter.present(sheet, animated: true)
+    result(nil)
+  }
+
   private func pickFolder(result: @escaping FlutterResult) {
     guard folderPicker == nil else {
       return result(

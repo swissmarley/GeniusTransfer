@@ -2,6 +2,7 @@ package com.nakya.geniustransfer
 
 import android.Manifest
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -130,6 +131,7 @@ class HostChannel(
                 SessionService.stop(activity)
                 result.success(null)
             }
+            "openFile" -> openFile(call, result)
             "startHotspot" -> hotspot.start(result)
             "stopHotspot" -> {
                 hotspot.stop()
@@ -188,6 +190,28 @@ class HostChannel(
             intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.filterNotNull()
                 ?: emptyList()
         else -> emptyList()
+    }
+
+    /**
+     * Opens a received file (a content URI) in the app the user prefers for
+     * its type. Replies false if no installed app can open it.
+     */
+    private fun openFile(call: MethodCall, result: MethodChannel.Result) {
+        val uri = call.argument<Any>("uri") as? String
+        if (uri == null || !uri.startsWith("content:")) {
+            result.error("bad_args", "openFile needs a content URI.", null)
+            return
+        }
+        val mime = (call.argument<Any>("mime") as? String) ?: "*/*"
+        val view = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(Uri.parse(uri), mime)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        try {
+            activity.startActivity(view)
+            result.success(true)
+        } catch (e: ActivityNotFoundException) {
+            result.success(false)
+        }
     }
 
     /** Opens [uris] on io and replies with what the Dart side needs for each. */
