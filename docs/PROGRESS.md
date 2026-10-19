@@ -15,6 +15,47 @@ Conventions for this run:
 - Decisions taken without you are listed under each milestone so you can
   overrule them in the morning.
 
+## Morning summary (2026-10-20)
+
+All milestones are built, committed and pushed to `origin/main`:
+
+- **M2:** receiving, with approval, progress and a default or chosen save
+  folder.
+- **M3:** no shared network: an Android hotspot with a Wi-Fi QR code, and
+  guides for iPhone and computers.
+- **M4:** Android share sheet, optional PIN, saving to Photos on iPhone
+  guests, HEIC→JPG copies, actions on received files.
+- **M5:** TESTING.md.
+
+**Verified on this Mac:** the server tests (128); the end-to-end
+self-tests for sending and receiving on the iOS Simulator and the macOS
+app; the APK, iOS (Simulator and device) and macOS builds.
+
+**Not verified:** nothing has run on a real phone or tablet tonight. The
+iPhone was locked, so the install failed (the build is fine). The Samsung
+tablet was not connected.
+
+Start here:
+
+1. Unlock the iPhone and run `tool/ios_install.sh "iPhone Marley"`.
+2. Connect the tablet and run `tool/android_apk.sh`.
+3. TESTING.md › part 1, then rows F1–F5 and G1–G3.
+
+Decisions waiting for you: drag and drop on computers (needs the
+third-party package `desktop_drop`), plus the "Decisions taken without
+you" listed under each milestone below.
+
+## M5: TESTING.md
+
+[TESTING.md](../TESTING.md) has three parts:
+
+1. Quick self-tests per host, run from the Mac.
+2. Device checklists for receiving, the hotspot, PIN, share sheet and
+   HEIC; the download checks stay in [M1-checklist.md](M1-checklist.md).
+3. The 5-person field test: the exact sentence to say, stopwatch points,
+   failure-step codes and a recording sheet. It passes if 4 of 5 people
+   manage both directions.
+
 ## M4: polish
 
 What exists:

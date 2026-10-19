@@ -636,6 +636,15 @@ Each milestone ends with a stop, a demo, a commit, and a device checklist.
 
 Basic upload approval ships in M2, not M4, because uploads without approval would be unsafe even in testing. M4 polishes it.
 
+**Status on 2026-10-20 (morning):** all five milestones are built and
+pushed. What ran where is in [docs/PROGRESS.md](docs/PROGRESS.md). In
+short: the server is covered by automated tests (128). Sending and
+receiving passed the end-to-end self-tests on the iOS Simulator and the
+Mac. Nothing has run on a real phone or tablet since Milestone 1. The
+"Done when" column above is therefore still open for every milestone, and
+[TESTING.md](TESTING.md) walks through it. Not done: desktop drag and
+drop, which needs a third-party package (waiting for your yes).
+
 ---
 
 ## 10. Decisions (answered 2026-10-19)

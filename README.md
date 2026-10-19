@@ -6,6 +6,8 @@ app**. The other device scans a QR code with its stock camera (or types a
 short address) and uses its normal web browser.
 
 - Design, research and decisions: [PLAN.md](PLAN.md)
+- How to test, including the 5-person field test: [TESTING.md](TESTING.md)
+- Overnight progress, with what was verified where: [docs/PROGRESS.md](docs/PROGRESS.md)
 - What to test on real devices for Milestone 1: [docs/M1-checklist.md](docs/M1-checklist.md)
 
 ## Status
@@ -17,7 +19,7 @@ short address) and uses its normal web browser.
 | 2. Guest → host upload (approval, progress, default or chosen save folder) | Built; checked on the iOS Simulator and macOS, Android built only. Real-device checks pending |
 | 3. No shared network: Android hotspot with a Wi-Fi QR code; guides for iPhone and computers | Built; UI checked in tests. The Android hotspot has not run on a device yet |
 | 4. Polish: Android share sheet, optional PIN, iPhone guests save to Photos, HEIC→JPG copies, actions on received files | Built; server parts tested, HEIC→JPG checked on a real HEIC, macOS self-test passes. Device checks pending |
-| 5. Field-test script | Planned |
+| 5. Field-test script and device checklists | Done: [TESTING.md](TESTING.md) |
 
 ## Repository layout
 
