@@ -164,6 +164,90 @@ String renderMessagePage({
       '</main></body></html>';
 }
 
+/// The page a guest sees when the host is receiving files.
+///
+/// Works without JavaScript: the form posts the files in one multipart
+/// request and the host accepts them afterwards. With JavaScript (ES5
+/// only), the page asks first, then sends file by file with progress.
+String renderReceivePage({
+  required GuestStrings strings,
+  required String nonce,
+  required int maxFiles,
+  required int maxBytes,
+}) {
+  final s = strings;
+  String data(String name, String text) => ' data-$name="${escapeHtml(text)}"';
+  final attrs = StringBuffer()
+    ..write(data('pick-first', s.get('receive_pick_first')))
+    ..write(data('waiting', s.get('receive_waiting')))
+    ..write(data('sending', s.get('receive_sending')))
+    ..write(data('file-done', s.get('receive_file_done')))
+    ..write(data('done-one', s.get('receive_done_one')))
+    ..write(data('done-other', s.get('receive_done_other')))
+    ..write(data('declined', s.get('receive_declined')))
+    ..write(data('expired', s.get('receive_expired')))
+    ..write(data('busy', s.get('receive_busy')))
+    ..write(data('too-many', s.get('receive_too_many', {'count': maxFiles})))
+    ..write(data('too-large',
+        s.get('receive_too_large', {'size': formatSize(maxBytes, s)})))
+    ..write(data('no-space', s.get('receive_no_space')))
+    ..write(data('failed', s.get('receive_failed')))
+    ..write(data('max-files', '$maxFiles'))
+    ..write(data('max-bytes', '$maxBytes'))
+    ..write(data('u-b', s.get('size_bytes')))
+    ..write(data('u-kb', s.get('size_kb')))
+    ..write(data('u-mb', s.get('size_mb')))
+    ..write(data('u-gb', s.get('size_gb')));
+
+  return '<!DOCTYPE html>'
+      '<html lang="${s.languageCode}"><head>'
+      '<meta charset="utf-8">'
+      '<meta name="viewport" content="width=device-width, initial-scale=1">'
+      '<meta name="referrer" content="no-referrer">'
+      '<meta name="color-scheme" content="light dark">'
+      '<title>${escapeHtml(s.get('page_title'))}</title>'
+      '<style>$_css</style></head>'
+      '<body$attrs>'
+      '<main class="wrap">'
+      '<h1>${escapeHtml(s.get('receive_heading'))}</h1>'
+      '<p class="sub">${escapeHtml(s.get('receive_sub'))}</p>'
+      '<form id="form" method="post" action="u" enctype="multipart/form-data">'
+      '<label class="pick" for="pick">${escapeHtml(s.get('receive_choose'))}</label>'
+      '<input id="pick" class="picker" type="file" name="f" multiple>'
+      '<button class="dl" id="send" type="submit">'
+      '${escapeHtml(s.get('receive_send_button'))}</button>'
+      '</form>'
+      '<p class="note hidden" id="msg" role="status" aria-live="polite"></p>'
+      '<ul class="files" id="list"></ul>'
+      '<p class="foot small">${escapeHtml(s.get('footer'))}</p>'
+      '</main>'
+      '<script nonce="$nonce">$_receiveScript</script>'
+      '</body></html>';
+}
+
+/// The no-JavaScript upload result page. While [refresh] is true it reloads
+/// itself every few seconds to show the host's decision.
+String renderWaitPage({
+  required String title,
+  required String body,
+  required bool refresh,
+  required GuestStrings strings,
+}) {
+  return '<!DOCTYPE html>'
+      '<html lang="${strings.languageCode}"><head>'
+      '<meta charset="utf-8">'
+      '<meta name="viewport" content="width=device-width, initial-scale=1">'
+      '<meta name="referrer" content="no-referrer">'
+      '<meta name="color-scheme" content="light dark">'
+      '${refresh ? '<meta http-equiv="refresh" content="3">' : ''}'
+      '<title>${escapeHtml(strings.get('page_title'))}</title>'
+      '<style>$_css</style></head><body><main class="wrap">'
+      '<h1>${escapeHtml(title)}</h1>'
+      '${body.isEmpty ? '' : '<p class="sub">${escapeHtml(body)}</p>'}'
+      '${refresh ? '' : '<a class="dl" href="../">${escapeHtml(strings.get('receive_more'))}</a>'}'
+      '</main></body></html>';
+}
+
 // Inline CSS. Flexbox only (no grid, no custom properties) so Chrome on
 // Android 8 and Safari on iOS 13 render it the same as current browsers.
 const _css = '''
@@ -181,8 +265,16 @@ h1{font-size:26px;line-height:1.2;margin:8px 0 6px}
 .meta{-webkit-flex:1;flex:1;min-width:0}
 .name{font-weight:600;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word}
 .size{color:#5d6470;font-size:15px}
-a.dl{display:block;margin-top:12px;padding:16px;border-radius:12px;background:#1a56db;color:#fff;text-align:center;text-decoration:none;font-weight:700;font-size:18px}
-a.dl:active{background:#1646b3}
+a.dl,button.dl{display:block;margin-top:12px;padding:16px;border-radius:12px;background:#1a56db;color:#fff;text-align:center;text-decoration:none;font-weight:700;font-size:18px}
+a.dl:active,button.dl:active{background:#1646b3}
+button.dl{width:100%;border:0;font-family:inherit;-webkit-appearance:none}
+button.dl[disabled]{opacity:.5}
+form{margin:0 0 14px}
+.pick{display:block;margin:16px 0 6px;font-weight:600}
+.picker{display:block;width:100%;box-sizing:border-box;padding:14px;border:2px dashed #b8c2d6;border-radius:12px;background:#fff;font-size:16px}
+.bar{height:6px;margin-top:10px;border-radius:3px;background:#e3e6eb;overflow:hidden}
+.fill{height:6px;width:0;background:#1a56db}
+.note.ok{background:#e3f6e8;color:#14532d}
 .status{margin:8px 2px 0;font-size:15px;color:#1a7f37;display:none}
 .status.on{display:block}
 .foot{margin:18px 0 0;color:#4a505c}
@@ -196,7 +288,10 @@ body{background:#0f1115;color:#e7e9ee}
 .note{background:#1b2a4a;color:#cddcff}.note.warn{background:#3d3010;color:#ffe3a3}
 .card{background:#1b1e24;box-shadow:none}
 .badge{background:#1b2a4a;color:#9dbbff}
-a.dl{background:#3b6fe8}a.dl:active{background:#2f5bc4}
+a.dl,button.dl{background:#3b6fe8}a.dl:active,button.dl:active{background:#2f5bc4}
+.picker{background:#1b1e24;border-color:#3a4150;color:#e7e9ee}
+.bar{background:#2a2e36}.fill{background:#3b6fe8}
+.note.ok{background:#12301c;color:#a6e9b9}
 .status{color:#5fd07a}
 }
 ''';
@@ -234,3 +329,79 @@ setTimeout(ping,5000);
 
 /// The inline script, exposed for tests.
 const guestPageScriptForTest = _script;
+
+// ES5 only, like the send page script.
+const _receiveScript = '''
+(function(){
+var b=document.body,form=document.getElementById('form'),pick=document.getElementById('pick'),btn=document.getElementById('send'),msg=document.getElementById('msg'),list=document.getElementById('list');
+if(!form||!pick||!window.XMLHttpRequest||!window.JSON||!pick.files)return;
+var busy=false,rows=[];
+function t(k){return b.getAttribute('data-'+k)||'';}
+function say(text,kind){msg.textContent=text;msg.className=text?'note'+(kind?' '+kind:''):'note hidden';}
+function finish(text,kind){busy=false;btn.disabled=false;say(text,kind);}
+function fmt(n){if(n<1000)return t('u-b').replace('{n}',n);var u=['u-kb','u-mb','u-gb'],v=n/1000,i=0;while(v>=1000&&i<2){v/=1000;i++;}return t(u[i]).replace('{n}',v>=100?Math.round(v):v.toFixed(1));}
+function req(method,url,body,timeout,done){
+var x=new XMLHttpRequest();x.open(method,url,true);x.timeout=timeout;
+x.onreadystatechange=function(){if(x.readyState!==4)return;var data=null;try{data=JSON.parse(x.responseText);}catch(e){}done(x.status,data);};
+if(body!==null)x.setRequestHeader('Content-Type','application/json');
+x.send(body);
+}
+function el(tag,cls,text){var e=document.createElement(tag);e.className=cls;if(text)e.textContent=text;return e;}
+function draw(files){
+list.innerHTML='';rows=[];
+for(var i=0;i<files.length;i++){
+var li=el('li','card'),bar=el('div','bar'),fill=el('div','fill'),st=el('p','status');
+li.appendChild(el('div','name',files[i].name));li.appendChild(el('div','size',fmt(files[i].size)));
+bar.appendChild(fill);li.appendChild(bar);li.appendChild(st);list.appendChild(li);
+rows.push({fill:fill,st:st});
+}
+}
+function errorText(code){return t(code==='busy'?'busy':code==='too_many_files'?'too-many':code==='too_large'?'too-large':code==='no_space'?'no-space':'failed');}
+form.onsubmit=function(){
+if(busy)return false;
+var files=pick.files,chosen=[],offer=[],total=0,i;
+if(!files||!files.length){say(t('pick-first'),'warn');return false;}
+for(i=0;i<files.length;i++){chosen.push(files[i]);total+=files[i].size;offer.push({name:files[i].name,size:files[i].size,type:files[i].type||''});}
+if(chosen.length>parseInt(t('max-files'),10)){say(t('too-many'),'warn');return false;}
+if(total>parseFloat(t('max-bytes'))){say(t('too-large'),'warn');return false;}
+busy=true;btn.disabled=true;draw(chosen);say(t('waiting'));
+req('POST','offer',JSON.stringify({files:offer}),15000,function(status,data){
+if(status===200&&data&&data.id){wait(data.id,chosen,0);return;}
+finish(errorText(data&&data.error),'warn');
+});
+return false;
+};
+function wait(id,files,fails){
+req('GET','offer/'+id+'?t='+new Date().getTime(),null,40000,function(status,data){
+if(status===200&&data){
+if(data.state==='pending'){wait(id,files,0);return;}
+if(data.state==='accepted'||data.state==='done'){say(t('sending'));send(id,files,0,data.received||[],0);return;}
+finish(t(data.state==='declined'?'declined':data.state==='expired'?'expired':'failed'),'warn');return;
+}
+if(status===0&&fails<5){setTimeout(function(){wait(id,files,fails+1);},2000);return;}
+finish(t('failed'),'warn');
+});
+}
+function has(a,v){for(var i=0;i<a.length;i++){if(a[i]===v)return true;}return false;}
+function sent(row){row.fill.style.width='100%';row.st.textContent=t('file-done');row.st.className='status on';}
+function send(id,files,i,done,fails){
+if(i>=files.length){pick.value='';finish(files.length===1?t('done-one'):t('done-other').replace('{count}',files.length),'ok');return;}
+var row=rows[i];
+if(has(done,i)){sent(row);send(id,files,i+1,done,0);return;}
+var x=new XMLHttpRequest();
+x.open('POST','u/'+id+'/'+i,true);
+if(x.upload)x.upload.onprogress=function(e){if(e.lengthComputable&&e.total>0)row.fill.style.width=Math.floor(e.loaded*100/e.total)+'%';};
+x.onreadystatechange=function(){
+if(x.readyState!==4)return;
+if(x.status===200||x.status===409){sent(row);send(id,files,i+1,done,0);return;}
+if(x.status===0&&fails<3){setTimeout(function(){send(id,files,i,done,fails+1);},2000);return;}
+finish(t('failed'),'warn');
+};
+x.setRequestHeader('Content-Type','application/octet-stream');
+x.send(files[i]);
+}
+})();
+''';
+
+/// The receive page script, exposed for tests.
+const receivePageScriptForTest = _receiveScript;

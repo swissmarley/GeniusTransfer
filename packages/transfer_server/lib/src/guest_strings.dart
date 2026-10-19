@@ -83,6 +83,37 @@ const _en = <String, String>{
   'send_empty': 'Nothing is being shared right now.',
   'keep_page_open': 'Keep this page open until your downloads have finished.',
 
+  // Receive page (the guest sends files to the host).
+  'receive_heading': 'Send files to the other device',
+  'receive_sub':
+      'Choose photos, videos or other files. The other device will ask '
+          'before accepting them.',
+  'receive_choose': 'Choose files',
+  'receive_send_button': 'Send',
+  'receive_pick_first': 'Choose at least one file first.',
+  'receive_waiting': 'Waiting for the other device to accept…',
+  'receive_sending': 'Sending… Keep this page open until it has finished.',
+  'receive_file_done': 'Sent',
+  'receive_done_one': '1 file sent.',
+  'receive_done_other': '{count} files sent.',
+  'receive_declined': 'The other device declined these files.',
+  'receive_expired':
+      'Nobody answered on the other device. Send the files again.',
+  'receive_busy':
+      'The other device is still deciding about other files. Try again in '
+          'a moment.',
+  'receive_too_many': 'Too many files at once. Send at most {count}.',
+  'receive_too_large':
+      'That is too much at once. Send at most {size} at a time.',
+  'receive_no_space': 'The other device does not have enough free space.',
+  'receive_failed':
+      'Sending stopped. Check that both devices are still on the same '
+          'network, then send again.',
+  'receive_arrived_waiting':
+      'Your files have arrived. Waiting for the other device to accept '
+          'them…',
+  'receive_more': 'Send more files',
+
   // Where the file goes. Shown under the heading, chosen by platform.
   'where_ios_safari':
       'Files are saved in the Files app › Downloads. If Safari asks, tap Download.',

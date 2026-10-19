@@ -76,6 +76,7 @@ Future<Reply> send(
   String method = 'GET',
   Map<String, String> headers = const {},
   String? hostOverride,
+  List<int>? body,
 }) async {
   final client = HttpClient()..autoUncompress = false;
   try {
@@ -84,6 +85,10 @@ Future<Reply> send(
     request.followRedirects = false;
     if (hostOverride != null) request.headers.host = hostOverride;
     headers.forEach(request.headers.set);
+    if (body != null) {
+      request.contentLength = body.length;
+      request.add(body);
+    }
     final response = await request.close();
     final builder = BytesBuilder(copy: false);
     await for (final chunk in response) {

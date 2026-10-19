@@ -259,6 +259,14 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
       case SessionIdle():
         unawaited(stop(StopReason.idle));
         return;
+      // Receiving is not wired up in the app yet (M2b).
+      case UploadOffered() ||
+            UploadOfferExpired() ||
+            UploadProgress() ||
+            UploadFileReceived() ||
+            UploadFileFailed() ||
+            UploadBatchFinished():
+        return;
     }
     notifyListeners();
   }

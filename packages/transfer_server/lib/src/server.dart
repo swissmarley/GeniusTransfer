@@ -2,18 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:mime/mime.dart';
 
 import 'content_disposition.dart';
 import 'events.dart';
+import 'file_names.dart';
 import 'guest_page.dart';
 import 'guest_strings.dart';
 import 'net_util.dart';
 import 'range.dart';
+import 'receive.dart';
 import 'shared_file.dart';
 import 'token.dart';
 import 'user_agent.dart';
+
+part 'uploads.dart';
 
 /// Tunables for a [TransferServer]. The defaults are the product defaults.
 class ServerConfig {
@@ -45,6 +50,9 @@ class ServerConfig {
 /// One sharing session: a plain-HTTP server that serves [files] and a guest
 /// page under `/<token>/`, on the given LAN addresses only.
 ///
+/// In [SessionMode.receive] it serves an upload page instead, and guests
+/// can send files to the host after it accepts them (see [approveUpload]).
+///
 /// Every request must carry the session token as the first path segment.
 /// Requests without it get a neutral "link expired" page that reveals
 /// nothing about the session.
@@ -52,15 +60,27 @@ class ServerConfig {
 /// The server owns [files]: [stop] closes them.
 class TransferServer {
   TransferServer({
-    required List<SharedFile> files,
+    List<SharedFile> files = const [],
     String? token,
     this.config = const ServerConfig(),
+    this.mode = SessionMode.send,
+    this.receiveOptions,
   })  : files = List.unmodifiable(files),
-        token = token ?? generateToken();
+        token = token ?? generateToken() {
+    if (mode == SessionMode.receive && receiveOptions == null) {
+      throw ArgumentError('A receiving session needs ReceiveOptions.');
+    }
+  }
 
   final List<SharedFile> files;
   final String token;
   final ServerConfig config;
+  final SessionMode mode;
+  final ReceiveOptions? receiveOptions;
+
+  final _batches = <String, _Batch>{};
+  final _runningUploads = <Future<void>>{};
+  int _activeUploads = 0;
 
   final _events = StreamController<ServerEvent>.broadcast();
   final _listening = <HttpServer>[];
@@ -142,13 +162,34 @@ class TransferServer {
     await _bind(addresses);
   }
 
+  /// Accepts upload offer [id] (from an [UploadOffered] event). The guest
+  /// then sends the files; or, if they are already here (quarantined), they
+  /// are moved into place now. Returns false if the offer is not pending.
+  Future<bool> approveUpload(String id) => _approve(id);
+
+  /// Refuses upload offer [id] and deletes anything already received for
+  /// it. Returns false if the offer is not pending.
+  Future<bool> declineUpload(String id) => _decline(id);
+
+  /// The folder where accepted files of batch [id] are written.
+  Directory? uploadFolder(String id) {
+    final options = receiveOptions;
+    return options == null
+        ? null
+        : Directory('${options.stagingDir.path}/$id/files');
+  }
+
   /// Ends the session: closes all connections and listeners, releases the
   /// files and invalidates the token. Not reversible.
   Future<void> stop() async {
     if (_stopped) return;
     _stopped = true;
     _idleTimer?.cancel();
+    for (final batch in _batches.values) {
+      batch.timer?.cancel();
+    }
     await dropConnections();
+    await _cleanUpUploads();
     for (final file in files) {
       try {
         await file.close();
@@ -276,7 +317,14 @@ class TransferServer {
     if (rest.length == 1 && rest.first.isEmpty) {
       if (!isGet && !isHead) return _methodNotAllowed(request);
       _noteGuest(request, remote);
+      if (mode == SessionMode.receive) {
+        return _sendReceivePage(request, strings, head: isHead);
+      }
       return _sendPage(request, strings, head: isHead);
+    }
+    if (mode == SessionMode.receive) {
+      final handled = await _routeUpload(request, remote, rest, strings);
+      if (handled) return;
     }
     if (rest.first == 'f' && (rest.length == 2 || rest.length == 3)) {
       final index = _parseIndex(rest[1]);
@@ -486,7 +534,12 @@ class TransferServer {
   }
 
   void _checkIdle() {
-    if (_stopped || _idleReported || _activeDownloads > 0) return;
+    if (_stopped ||
+        _idleReported ||
+        _activeDownloads > 0 ||
+        _activeUploads > 0) {
+      return;
+    }
     if (DateTime.now().difference(_lastActivity) >= config.idleTimeout) {
       _idleReported = true;
       _emit(const SessionIdle());

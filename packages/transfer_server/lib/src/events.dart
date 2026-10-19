@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'receive.dart';
 import 'user_agent.dart';
 
 /// Something that happened in a session, reported to the host UI.
@@ -55,4 +58,66 @@ final class DownloadEnded extends ServerEvent {
 /// running. The host app should end the session.
 final class SessionIdle extends ServerEvent {
   const SessionIdle();
+}
+
+/// A guest wants to send files. Call `approveUpload(id)` or
+/// `declineUpload(id)`. If [quarantined], the files have already arrived
+/// (the guest's browser has no JavaScript) and wait in quarantine.
+final class UploadOffered extends ServerEvent {
+  const UploadOffered(this.id, this.address, this.device, this.files,
+      this.totalBytes, this.quarantined);
+
+  final String id;
+  final String address;
+  final GuestDevice device;
+  final List<OfferedFile> files;
+  final int totalBytes;
+  final bool quarantined;
+}
+
+/// An offer was not answered within the offer timeout and is gone.
+final class UploadOfferExpired extends ServerEvent {
+  const UploadOfferExpired(this.id);
+  final String id;
+}
+
+/// Bytes of file [fileIndex] of batch [batchId] received so far.
+final class UploadProgress extends ServerEvent {
+  const UploadProgress(this.batchId, this.fileIndex, this.received);
+
+  final String batchId;
+  final int fileIndex;
+  final int received;
+}
+
+/// File [fileIndex] of batch [batchId] arrived completely and is [file].
+final class UploadFileReceived extends ServerEvent {
+  const UploadFileReceived(
+      this.batchId, this.fileIndex, this.file, this.name, this.size);
+
+  final String batchId;
+  final int fileIndex;
+  final File file;
+
+  /// The final file name ([file]'s base name).
+  final String name;
+  final int size;
+}
+
+/// File [fileIndex] of batch [batchId] did not arrive completely (the guest
+/// went away or sent the wrong size). The guest may try it again.
+final class UploadFileFailed extends ServerEvent {
+  const UploadFileFailed(this.batchId, this.fileIndex);
+
+  final String batchId;
+  final int fileIndex;
+}
+
+/// Every file of batch [batchId] has arrived.
+final class UploadBatchFinished extends ServerEvent {
+  const UploadBatchFinished(this.batchId, this.fileCount, this.totalBytes);
+
+  final String batchId;
+  final int fileCount;
+  final int totalBytes;
 }
