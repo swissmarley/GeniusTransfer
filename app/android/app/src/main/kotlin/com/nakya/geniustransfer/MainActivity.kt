@@ -17,6 +17,10 @@ class MainActivity : FlutterFragmentActivity() {
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
             host?.onPicked(uris)
         }
+    private val pickFolder =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+            host?.onFolderPicked(tree)
+        }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -29,6 +33,7 @@ class MainActivity : FlutterFragmentActivity() {
                 )
             },
             launchDocumentPicker = { pickDocuments.launch(arrayOf("*/*")) },
+            launchFolderPicker = { pickFolder.launch(null) },
         )
     }
 

@@ -25,7 +25,8 @@ import java.util.concurrent.Executors
 
 /**
  * The Dart side's door to Android: file pickers that hand over open file
- * descriptors (no copies of multi-GB files), and the sharing service.
+ * descriptors (no copies of multi-GB files), the sharing service, and putting
+ * received files where the user finds them (see [Delivery]).
  * See lib/platform/host_platform.dart.
  */
 class HostChannel(
@@ -33,10 +34,14 @@ class HostChannel(
     messenger: BinaryMessenger,
     private val launchMediaPicker: () -> Unit,
     private val launchDocumentPicker: () -> Unit,
+    private val launchFolderPicker: () -> Unit,
 ) : MethodChannel.MethodCallHandler {
     private val channel = MethodChannel(messenger, "geniustransfer/host")
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
+    private val delivery = Delivery(activity.applicationContext)
+
+    /** The caller of the open picker. One picker at a time, of any kind. */
     private var pendingPick: MethodChannel.Result? = null
 
     init {
@@ -56,6 +61,32 @@ class HostChannel(
         when (call.method) {
             "pickMedia" -> startPick(result, launchMediaPicker)
             "pickDocuments" -> startPick(result, launchDocumentPicker)
+            "pickFolder" -> startPick(result, launchFolderPicker)
+            "deliverFile" -> deliverFile(call, result)
+            "freeBytes" -> {
+                val path = call.argument<Any>("path") as? String
+                if (path == null) {
+                    result.error("bad_args", "freeBytes needs a path.", null)
+                } else {
+                    // A single statfs: answered here, so it never waits
+                    // behind a long delivery on io.
+                    result.success(Delivery.freeBytes(path))
+                }
+            }
+            "requestStoragePermission" -> {
+                // Android 8–9 only, to save into Pictures, Movies and Download.
+                // Without it, received files go to the app's own folder.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+                    ContextCompat.checkSelfPermission(
+                        activity, Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    ActivityCompat.requestPermissions(
+                        activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 2
+                    )
+                }
+                result.success(null)
+            }
             "clearCopies" -> io.execute {
                 copiesDir().deleteRecursively()
                 main.post { result.success(null) }
@@ -123,6 +154,52 @@ class HostChannel(
                 } else {
                     result.success(files)
                 }
+            }
+        }
+    }
+
+    /** Called by MainActivity with the folder picker's result (null if cancelled). */
+    fun onFolderPicked(tree: Uri?) {
+        val result = pendingPick ?: return
+        pendingPick = null
+        if (tree == null) {
+            result.success(null)
+            return
+        }
+        io.execute {
+            try {
+                val folder = delivery.keepFolder(tree)
+                main.post { result.success(folder) }
+            } catch (e: Exception) {
+                main.post { result.error("picker", e.message ?: e.toString(), null) }
+            }
+        }
+    }
+
+    /**
+     * Moves a received file from staging to its destination. The copy can
+     * take a while for a big video, so it runs on io.
+     */
+    private fun deliverFile(call: MethodCall, result: MethodChannel.Result) {
+        val source = call.argument<Any>("source") as? String
+        val name = call.argument<Any>("name") as? String
+        val mime = call.argument<Any>("mime") as? String
+        val folderArg = call.argument<Any>("folder")
+        val folder = folderArg as? String
+        if (source.isNullOrEmpty() || name == null || mime == null ||
+            (folderArg != null && folder == null)
+        ) {
+            result.error("bad_args", "deliverFile needs source, name, mime and an optional folder.", null)
+            return
+        }
+        io.execute {
+            try {
+                val delivered = delivery.deliver(File(source), name, mime, folder)
+                main.post { result.success(delivered) }
+            } catch (e: DeliveryException) {
+                main.post { result.error(e.code, e.message, null) }
+            } catch (e: Exception) {
+                main.post { result.error("failed", e.message ?: e.toString(), null) }
             }
         }
     }
