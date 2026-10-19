@@ -26,8 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>GeniusTransfer lets a phone or computer near you download files from this iPhone over your Wi-Fi or hotspot, without the internet.</string>
+	<string>GeniusTransfer lets a phone or computer near you exchange files with this iPhone over your Wi-Fi or hotspot, without the internet.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GeniusTransfer saves photos and videos you receive to your library when you tap Save to Photos.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -50,6 +54,8 @@
 		</dict>
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
