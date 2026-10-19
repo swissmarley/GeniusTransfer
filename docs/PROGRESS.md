@@ -15,6 +15,62 @@ Conventions for this run:
 - Decisions taken without you are listed under each milestone so you can
   overrule them in the morning.
 
+## M2b: receiving in the app
+
+What exists:
+
+- Home › **Receive files** opens a receiving session with the same QR code
+  and address as sending. The guest page becomes "Send files to the other
+  device".
+- **Approval:** each batch shows a sheet with the device ("iPhone ·
+  Safari"), the files and the total size, and Decline / Accept. Nothing is
+  kept unless you accept. An unanswered offer expires after 10 minutes and
+  the sheet closes by itself.
+- **Progress** shows in the status line. Received files are listed with
+  where they went.
+- **Where files go by default:**
+  - iPhone: Files › On My iPhone › GeniusTransfer › Received. Photos and
+    videos also get a **Save to Photos** button, which keeps the original
+    (HEIC stays HEIC).
+  - Android: Pictures, Movies or Download › GeniusTransfer, depending on
+    the file type, so photos show up in the gallery.
+  - Mac: ~/Downloads/GeniusTransfer (with Show in Finder).
+  - Windows: Downloads\GeniusTransfer (with Show in folder).
+- **Settings** (gear on the Home screen): choose another folder for
+  received files, or go back to the default. If the chosen folder
+  disappears or access is revoked, files go to the default folder and the
+  session says so.
+- Same-name files are never overwritten: "a.jpg", "a (1).jpg"…
+
+Verified:
+
+- iOS Simulator (iPhone 17, iOS 27), receive self-test build +
+  `tool/selftest_upload.py`: 5 files (1 kB to 50 MB, via the page's script
+  and via the no-script form) arrived with correct content in
+  `Documents/Received`; a duplicate became "selftest-small (1).txt".
+- macOS app (release, sandboxed) with the merged entitlements: the same
+  5 files arrived intact in the real ~/Downloads/GeniusTransfer, shown as
+  "~/Downloads/GeniusTransfer". The test files were deleted afterwards.
+- `flutter analyze` clean; app tests include the approval sheet (Accept,
+  Decline, long lists, closing when the offer expires).
+- Android: the debug APK builds with the new Kotlin (MediaStore, folder
+  picker). **Not run on a device yet**; the Samsung tablet was not
+  connected.
+- Not verified anywhere yet: the folder pickers (iOS, Android, macOS) and
+  Save to Photos, which need a person to tap through system screens. They
+  are on the device checklist.
+
+Decisions taken without you:
+
+- Photos and videos on Android go to Pictures/Movies › GeniusTransfer, not
+  Download, so they appear in the gallery like camera photos.
+- On iPhone, received photos are not added to Photos automatically (that
+  needs a permission prompt). They stay in Files, with a one-tap Save to
+  Photos button.
+- Files arrive in a private staging folder first and are moved after they
+  are complete, so a cut-off upload never leaves half a file in your
+  folders.
+
 ## M2a: server side of uploads (guest → host)
 
 What exists (`packages/transfer_server`):

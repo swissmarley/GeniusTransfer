@@ -14,7 +14,7 @@ short address) and uses its normal web browser.
 |---|---|
 | 0. Research and plan | Done |
 | 1. Host → guest download, same network (iOS, Android, macOS, Windows hosts) | Built; checked on the iOS Simulator and on macOS. Real-device checks pending, see the checklist |
-| 2. Guest → host upload | Next |
+| 2. Guest → host upload (approval, progress, default or chosen save folder) | Built; checked on the iOS Simulator and macOS, Android built only. Real-device checks pending |
 | 3. No shared network (hotspot) | Planned |
 | 4. Polish (share sheet, PIN, …) | Planned |
 | 5. Field-test script | Planned |
@@ -95,8 +95,8 @@ Flutter cannot build Windows apps on a Mac. On a Windows 10/11 PC:
 ## Tests
 
 ```bash
-cd packages/transfer_server && dart test   # server: token gate, traversal, Range, streaming, memory
-cd app && flutter test                     # app: network interface ranking
+cd packages/transfer_server && dart test   # server: token gate, traversal, Range, streaming, memory, uploads
+cd app && flutter test                     # app: network interface ranking, approval sheet
 ```
 
 ### End-to-end self-test from the Mac
@@ -111,3 +111,16 @@ python3 -I tool/selftest_check.py <GT_SELFTEST_URL>
 
 It downloads every file as a guest browser would and checks sizes,
 checksums, Range requests, the token gate and the security headers.
+
+To check receiving, build with
+`--dart-define=GT_SELFTEST=true --dart-define=GT_SELFTEST_MODE=receive`.
+The app opens a receiving session that accepts every offer. Then:
+
+```bash
+python3 -I tool/selftest_upload.py <GT_SELFTEST_URL>
+```
+
+It uploads five files as a guest browser would: three the way the page's
+script does, and two through the plain form used without JavaScript. The
+app checks each file's content and logs `GT_SELFTEST_RECEIVED=<name>|<size>|ok`
+and `GT_SELFTEST_SAVED=<name>|<size>|<folder>|<path>`.
