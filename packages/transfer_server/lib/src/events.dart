@@ -20,7 +20,8 @@ final class GuestConnected extends ServerEvent {
 /// A guest started downloading bytes [start, end) of file [fileIndex].
 final class DownloadStarted extends ServerEvent {
   const DownloadStarted(
-      this.id, this.address, this.fileIndex, this.start, this.end);
+      this.id, this.address, this.fileIndex, this.start, this.end,
+      {this.converted = false});
 
   /// Unique per response, to match later events.
   final int id;
@@ -30,6 +31,10 @@ final class DownloadStarted extends ServerEvent {
 
   /// Exclusive.
   final int end;
+
+  /// The guest asked for a JPEG copy of this HEIC photo, not the original:
+  /// [start] and [end] count bytes of the copy.
+  final bool converted;
 }
 
 /// Bytes sent so far for download [id] (reported a few times a second).

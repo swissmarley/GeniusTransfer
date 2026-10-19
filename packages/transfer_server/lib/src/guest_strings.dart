@@ -157,6 +157,13 @@ const _en = <String, String>{
       'To put a photo or video in Photos: tap Open, then touch and hold the '
           'photo, or tap Share under the video, and choose Save.',
 
+  // HEIC photos from an iPhone, for devices that may not open them.
+  'jpg_button': 'Download as JPG',
+  'heic_hint':
+      'HEIC photos (from iPhones) may not open on every phone or computer. '
+          '“Download as JPG” gets a copy that opens everywhere.',
+  'jpg_failed': 'This photo could not be converted. Download the original.',
+
   // Shown for old or wrong links.
   'expired_title': 'This link has expired',
   'expired_body':

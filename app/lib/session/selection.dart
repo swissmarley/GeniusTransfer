@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:transfer_server/transfer_server.dart';
 
 import '../platform/host_platform.dart';
@@ -18,6 +19,8 @@ class TempSharedFile implements SharedFile {
       TempSharedFile(await LocalSharedFile.fromPath(path, name: name));
 
   final LocalSharedFile _inner;
+
+  File get file => _inner.file;
 
   @override
   String get name => _inner.name;
@@ -138,6 +141,28 @@ class Selection extends ChangeNotifier {
     }
     await cleanUpTemporaryFiles(_platform);
   }
+}
+
+/// iOS and macOS hosts: a JPEG copy of a HEIC photo, for guests whose
+/// devices may not open HEIC. Made in the temporary folder and deleted when
+/// the session releases it. Null if the photo cannot be converted.
+Future<SharedFile?> makeJpegCopy(HostPlatform platform, SharedFile heic) async {
+  final source = switch (heic) {
+    TempSharedFile(:final file) => file.path,
+    LocalSharedFile(:final file) => file.path,
+    _ => null,
+  };
+  if (source == null) return null;
+  final dir = await Directory(
+          '${(await getTemporaryDirectory()).path}/jpeg')
+      .createTemp();
+  final name = jpegName(heic.name);
+  final target = '${dir.path}/$name';
+  if (!await platform.convertToJpeg(source, target)) {
+    await dir.delete(recursive: true);
+    return null;
+  }
+  return TempSharedFile.fromPath(target, name: name);
 }
 
 /// Deletes leftovers from earlier sessions (e.g. after a crash).

@@ -68,7 +68,14 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     required this.notificationText,
     required this.notificationStop,
   })  : mode = SessionMode.send,
-        server = TransferServer(files: files, pin: pin),
+        server = TransferServer(
+          files: files,
+          pin: pin,
+          // Apple hosts can turn HEIC photos into JPEG for other guests.
+          jpegCopy: Platform.isIOS || Platform.isMacOS
+              ? (heic) => makeJpegCopy(platform, heic)
+              : null,
+        ),
         progress = [for (final f in files) FileProgress(f.length)],
         delivery = null,
         stagingDir = null;
@@ -565,6 +572,14 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
     final d = _downloads[id];
     if (d == null) return;
     final p = progress[d.fileIndex];
+    if (d.converted) {
+      // A JPEG copy: its size differs from the original's.
+      if (completed && d.start == 0) {
+        p.done = true;
+        p.bytes = p.length;
+      }
+      return;
+    }
     if (d.start <= p.bytes) p.bytes = max(p.bytes, d.start + sent);
     if (completed && p.bytes >= p.length) p.done = true;
   }

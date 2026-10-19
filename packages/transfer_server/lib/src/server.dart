@@ -67,6 +67,7 @@ class TransferServer {
     this.mode = SessionMode.send,
     this.receiveOptions,
     this.pin,
+    this.jpegCopy,
   })  : files = List.unmodifiable(files),
         token = token ?? generateToken() {
     if (mode == SessionMode.receive && receiveOptions == null) {
@@ -89,6 +90,13 @@ class TransferServer {
   final String? pin;
   final _pinGrants = <String>{};
   int _pinFailures = 0;
+
+  /// Makes a JPEG copy of a HEIC photo, or returns null if it cannot. When
+  /// set, guests that may not open HEIC (Android, Windows) also get a
+  /// "Download as JPG" link. Called at most once per file, on first use;
+  /// the server releases the copies when it stops.
+  final Future<SharedFile?> Function(SharedFile heic)? jpegCopy;
+  final _jpegCopies = <int, Future<SharedFile?>>{};
 
   /// Too many wrong PINs: nobody new can get in.
   bool get pinLockedOut => pin != null && _pinFailures >= maxPinAttempts;
@@ -208,7 +216,16 @@ class TransferServer {
     }
     await dropConnections();
     await _cleanUpUploads();
-    for (final file in files) {
+    final copies = <SharedFile>[];
+    for (final pending in _jpegCopies.values) {
+      try {
+        final copy = await pending;
+        if (copy != null) copies.add(copy);
+      } catch (_) {
+        // A failed conversion left nothing to release.
+      }
+    }
+    for (final file in [...files, ...copies]) {
       try {
         await file.close();
       } catch (_) {
@@ -361,6 +378,28 @@ class TransferServer {
       return _sendFile(request, index, remote,
           head: isHead, inline: rest.first == 'v');
     }
+    // j/: a JPEG copy of a HEIC photo.
+    if (rest.first == 'j' && (rest.length == 2 || rest.length == 3)) {
+      final index = _parseIndex(rest[1]);
+      final convert = jpegCopy;
+      if (index == null || convert == null || !isHeic(files[index].name)) {
+        return _sendMessage(request, HttpStatus.notFound, strings,
+            strings.get('not_found'), '');
+      }
+      if (!isGet && !isHead) return _methodNotAllowed(request);
+      _noteGuest(request, remote);
+      SharedFile? copy;
+      try {
+        copy = await (_jpegCopies[index] ??= convert(files[index]));
+      } catch (_) {
+        copy = null;
+      }
+      if (copy == null) {
+        return _sendMessage(request, HttpStatus.notFound, strings,
+            strings.get('jpg_failed'), '');
+      }
+      return _sendFile(request, index, remote, head: isHead, variant: copy);
+    }
     if (rest.length == 1 && rest.first == 'status') {
       if (!isGet && !isHead) return _methodNotAllowed(request);
       return _sendStatus(request, head: isHead);
@@ -398,6 +437,7 @@ class TransferServer {
       device: GuestDevice.fromUserAgent(
           request.headers.value(HttpHeaders.userAgentHeader)),
       nonce: nonce,
+      jpegCopies: jpegCopy != null,
     );
     final response = request.response;
     response.headers
@@ -441,14 +481,15 @@ class TransferServer {
     return _writeBody(response, const [], head: true);
   }
 
+  /// Sends file [index], or [variant] (a converted copy of it) if given.
   Future<void> _sendFile(HttpRequest request, int index, InternetAddress remote,
-      {required bool head, bool inline = false}) async {
-    final file = files[index];
+      {required bool head, bool inline = false, SharedFile? variant}) async {
+    final file = variant ?? files[index];
     final size = file.length;
     final response = request.response;
     final modified = file.lastModified;
     final lastModified = modified == null ? null : HttpDate.format(modified);
-    final etag = '"$index-${size.toRadixString(36)}-'
+    final etag = '"${variant == null ? '' : 'j'}$index-${size.toRadixString(36)}-'
         '${(modified?.millisecondsSinceEpoch ?? 0).toRadixString(36)}"';
 
     final decision = decideRange(
@@ -498,7 +539,8 @@ class TransferServer {
 
     final id = _nextDownloadId++;
     _activeDownloads++;
-    _emit(DownloadStarted(id, remote.address, index, start, end));
+    _emit(DownloadStarted(id, remote.address, index, start, end,
+        converted: variant != null));
     var sent = 0;
     var lastReport = DateTime.now();
     final counted = file.openRead(start, end).map((chunk) {

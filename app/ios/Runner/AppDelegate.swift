@@ -1,4 +1,5 @@
 import Flutter
+import ImageIO
 import Photos
 import UIKit
 import UniformTypeIdentifiers
@@ -75,6 +76,14 @@ final class HostChannel: NSObject, FlutterPlugin {
       fileQueue.async {
         let reply = SaveFolder.deliver(source: source, name: name, bookmark: folder)
         DispatchQueue.main.async { result(reply) }
+      }
+    case "convertToJpeg":
+      guard let source = args["source"] as? String, let target = args["target"] as? String
+      else { return result(Self.badArgs(call)) }
+      // A 12-megapixel photo takes a moment: off the main thread.
+      DispatchQueue.global(qos: .userInitiated).async {
+        let made = JpegCopy.make(from: source, to: target)
+        DispatchQueue.main.async { result(made) }
       }
     case "saveToPhotos":
       guard let path = args["path"] as? String, let video = args["video"] as? Bool else {
@@ -399,5 +408,26 @@ private enum SaveFolder {
 
   private static func unavailable(_ message: String) -> FlutterError {
     FlutterError(code: "folder_unavailable", message: message, details: nil)
+  }
+}
+
+/// JPEG copies of HEIC photos, for guests whose devices may not open HEIC
+/// (older Android phones, Windows without the HEIF extension). ImageIO
+/// copies the metadata too: date, orientation, location.
+private enum JpegCopy {
+  static func make(from source: String, to target: String) -> Bool {
+    let output = URL(fileURLWithPath: target)
+    guard let image = CGImageSourceCreateWithURL(URL(fileURLWithPath: source) as CFURL, nil),
+      CGImageSourceGetCount(image) > 0,
+      let destination = CGImageDestinationCreateWithURL(
+        output as CFURL, "public.jpeg" as CFString, 1, nil)
+    else { return false }
+    let options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.9]
+    CGImageDestinationAddImageFromSource(destination, image, 0, options as CFDictionary)
+    guard CGImageDestinationFinalize(destination) else {
+      try? FileManager.default.removeItem(at: output)
+      return false
+    }
+    return true
   }
 }

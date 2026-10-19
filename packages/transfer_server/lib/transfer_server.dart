@@ -8,6 +8,7 @@ export 'src/content_disposition.dart' show contentDisposition;
 export 'src/events.dart';
 export 'src/fd_file.dart' show FdFileReader, FdSharedFile;
 export 'src/file_names.dart' show sanitizeFileName, uniqueName;
+export 'src/guest_page.dart' show isHeic, jpegName;
 export 'src/guest_strings.dart' show GuestStrings;
 export 'src/net_util.dart' show isLanAddress, isPrivateIpv4;
 export 'src/receive.dart';

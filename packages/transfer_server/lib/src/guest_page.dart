@@ -14,6 +14,18 @@ const chromeSafeExtensions = {
   'mov', 'wmv',
 };
 
+/// Whether [name] is a HEIC/HEIF photo (iPhone camera format).
+bool isHeic(String name) {
+  final ext = extensionOf(name);
+  return ext == 'heic' || ext == 'heif';
+}
+
+/// "IMG_0412.HEIC" → "IMG_0412.jpg".
+String jpegName(String name) {
+  final dot = name.lastIndexOf('.');
+  return '${dot > 0 ? name.substring(0, dot) : name}.jpg';
+}
+
 /// The lower-case extension of [name] without the dot, or '' if none.
 String extensionOf(String name) {
   final dot = name.lastIndexOf('.');
@@ -88,9 +100,15 @@ String renderSendPage({
   required GuestStrings strings,
   required GuestDevice device,
   required String nonce,
+  bool jpegCopies = false,
 }) {
   final s = strings;
   final total = files.fold<int>(0, (sum, f) => sum + f.length);
+  // Apple devices open HEIC; others may not, so offer a JPEG copy.
+  final apple = device.platform == GuestPlatform.ios ||
+      device.platform == GuestPlatform.mac;
+  bool offerJpeg(SharedFile f) => jpegCopies && !apple && isHeic(f.name);
+  final heicHint = files.any(offerJpeg);
   final needsKeepHint = device.usesChromeDownloads &&
       files.any((f) => !chromeSafeExtensions.contains(extensionOf(f.name)));
   // Downloads on an iPhone go to Files. Photos and videos get an extra
@@ -119,6 +137,7 @@ String renderSendPage({
         '<a class="dl" href="${escapeHtml(href)}" download data-s="s$i">'
         '${escapeHtml(s.get('download_button'))}</a>'
         '${forPhotos(f) ? '<a class="view" href="${escapeHtml('v/$i/${Uri.encodeComponent(f.name)}')}">${escapeHtml(s.get('view_button'))}</a>' : ''}'
+        '${offerJpeg(f) ? '<a class="view" href="${escapeHtml('j/$i/${Uri.encodeComponent(jpegName(f.name))}')}" download>${escapeHtml(s.get('jpg_button'))}</a>' : ''}'
         '<p class="status" id="s$i" aria-live="polite"></p>'
         '</li>');
   }
@@ -149,6 +168,7 @@ String renderSendPage({
       '<p class="note" id="where">${escapeHtml(s.get(whereKey(device)))}</p>'
       '${needsKeepHint ? '<p class="note warn">${escapeHtml(s.get('chrome_keep_hint'))}</p>' : ''}'
       '${photosHint ? '<p class="note">${escapeHtml(s.get('ios_photos_hint'))}</p>' : ''}'
+      '${heicHint ? '<p class="note">${escapeHtml(s.get('heic_hint'))}</p>' : ''}'
       '<ul class="files">$items</ul>'
       '${files.isEmpty ? '' : '<p class="foot">${escapeHtml(s.get('keep_page_open'))}</p>'}'
       '<p class="foot small">${escapeHtml(s.get('footer'))}</p>'

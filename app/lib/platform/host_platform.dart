@@ -245,6 +245,15 @@ class HostPlatform {
     }
   }
 
+  /// iOS and macOS: writes a JPEG copy of the HEIC photo at [source] to
+  /// [target]. Returns false if it could not.
+  Future<bool> convertToJpeg(String source, String target) async {
+    if (!(Platform.isIOS || Platform.isMacOS)) return false;
+    return await _channel.invokeMethod<bool>(
+            'convertToJpeg', {'source': source, 'target': target}) ??
+        false;
+  }
+
   /// macOS: shows [path] selected in a Finder window.
   Future<void> revealInFinder(String path) async {
     if (Platform.isMacOS) {
