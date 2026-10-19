@@ -15,6 +15,51 @@ Conventions for this run:
 - Decisions taken without you are listed under each milestone so you can
   overrule them in the morning.
 
+## M4: polish
+
+What exists:
+
+- **Android share sheet:** "Share › GeniusTransfer" from Photos, Files or
+  any app opens Send with those files already chosen, without copies. If a
+  session is running, the shared files wait until you are back on the Home
+  screen.
+- **Optional PIN** (Settings › Privacy › Ask for a PIN, off by default).
+  Each session gets a random 4-digit PIN, shown big under the code. The
+  guest's browser asks for it before showing anything; the form works
+  without JavaScript. Wrong attempts show on the host. After 5 wrong PINs
+  nobody new can join; guests already in can continue.
+- **iPhone guests and Photos:** next to Download, photos and videos get an
+  **Open** link, which shows them in Safari, plus a one-line hint on saving
+  to Photos from there. (Safari downloads always go to Files.)
+- **HEIC → JPG:** when an iPhone or Mac sends HEIC photos, Android and
+  Windows guests also get **Download as JPG**. The copy is made on first
+  use, keeps date, orientation and location, and is deleted when the
+  session ends.
+- **Received files:** Open (Android), share sheet (iPhone), Show in
+  Finder/folder (computers), next to Save to Photos on iPhone.
+
+Verified:
+
+- Server: 128 tests pass, including the PIN (cookie scope, countdown,
+  lock-out, constant-time check, receive mode), the inline route and the
+  JPG route (made once, cached, failures, released on stop).
+- HEIC→JPG: the Swift conversion code, run on a real 6016×6016 HEIC from
+  macOS, produced a valid JPEG of the same size with its EXIF data.
+- macOS download self-test still passes; with an Android browser
+  identity, the page shows the JPG link.
+- APK, iOS Simulator and macOS builds pass; 16 app tests pass.
+- **Not checked on devices:** the share sheet intake, opening received
+  files, the iOS share sheet, typing a PIN on a real phone.
+
+Waiting for you:
+
+- **Drag and drop onto the window (Mac/Windows)** needs a package that is
+  not from the Flutter team (`desktop_drop`). Per your rule I did not add
+  it. Say yes and I will add it.
+- **iPhone install:** the release build succeeds, but installing failed
+  because the phone was locked overnight. With the phone unlocked, run
+  `tool/ios_install.sh "iPhone Marley"`.
+
 ## M3: no shared network
 
 What exists:
