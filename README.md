@@ -1,70 +1,186 @@
 # GeniusTransfer
 
-Move files between an iPhone, an Android phone or a computer **without the
-internet and without the cloud**, when **only one of the devices has the
-app**. The other device scans a QR code with its stock camera (or types a
-short address) and uses its normal web browser.
+Move files between an iPhone, an Android phone, and a computer on the local
+network. Only one device needs the app. The other scans a QR code with its
+camera, or types a short address, and uses its web browser.
 
-- Design, research and decisions: [PLAN.md](PLAN.md)
-- How to test, including the 5-person field test: [TESTING.md](TESTING.md)
-- Overnight progress, with what was verified where: [docs/PROGRESS.md](docs/PROGRESS.md)
-- What to test on real devices for Milestone 1: [docs/M1-checklist.md](docs/M1-checklist.md)
+Files go directly from one device to the other. A transfer works with no
+internet connection, and nothing is sent to a server.
 
-## Status
+Release **0.1.0** is tested and working on iPhone, Android, macOS, Windows,
+and Debian Linux (AMD64 and ARM64). The app’s interface is in English.
 
-| Milestone | State |
+## Download
+
+Builds are on the [0.1.0 release](https://github.com/swissmarley/GeniusTransfer/releases/tag/0.1.0).
+
+| Device | File |
 |---|---|
-| 0. Research and plan | Done |
-| 1. Host → guest download, same network (iOS, Android, macOS, Windows hosts) | Built; checked on the iOS Simulator and on macOS. Real-device checks pending, see the checklist |
-| 2. Guest → host upload (approval, progress, default or chosen save folder) | Built; checked on the iOS Simulator and macOS, Android built only. Real-device checks pending |
-| 3. No shared network: Android hotspot with a Wi-Fi QR code; guides for iPhone and computers | Built; UI checked in tests. The Android hotspot has not run on a device yet |
-| 4. Polish: Android share sheet, optional PIN, iPhone guests save to Photos, HEIC→JPG copies, actions on received files | Built; server parts tested, HEIC→JPG checked on a real HEIC, macOS self-test passes. Device checks pending |
-| 5. Field-test script and device checklists | Done: [TESTING.md](TESTING.md) |
+| Android phone or tablet | [GeniusTransfer-0.1.0-android.apk](https://github.com/swissmarley/GeniusTransfer/releases/download/0.1.0/GeniusTransfer-0.1.0-android.apk) |
+| iPhone or iPad | [GeniusTransfer-0.1.0-ios-unsigned.ipa](https://github.com/swissmarley/GeniusTransfer/releases/download/0.1.0/GeniusTransfer-0.1.0-ios-unsigned.ipa) |
+| Mac | [GeniusTransfer-0.1.0-macos-universal.dmg](https://github.com/swissmarley/GeniusTransfer/releases/download/0.1.0/GeniusTransfer-0.1.0-macos-universal.dmg) |
+| Windows | [GeniusTransfer-0.1.0-windows-x64.exe](https://github.com/swissmarley/GeniusTransfer/releases/download/0.1.0/GeniusTransfer-0.1.0-windows-x64.exe) |
+| Debian, 64-bit PC | [GeniusTransfer-0.1.0-linux-amd64.deb](https://github.com/swissmarley/GeniusTransfer/releases/download/0.1.0/GeniusTransfer-0.1.0-linux-amd64.deb) |
+| Debian, ARM64 | [GeniusTransfer-0.1.0-linux-arm64.deb](https://github.com/swissmarley/GeniusTransfer/releases/download/0.1.0/GeniusTransfer-0.1.0-linux-arm64.deb) |
 
-## Repository layout
+### Android
 
-```
-app/                       Flutter app (iOS, Android, macOS, Windows hosts)
-  lib/                     UI, session logic, network detection
-  android/…/kotlin/        Pickers that hand over file descriptors, sharing service
-  ios/Runner/AppDelegate.swift   Background time to finish downloads
-packages/transfer_server/  The HTTP server and guest page (pure Dart, tested on the Mac)
-tool/                      Build/install scripts and the end-to-end self-test checker
-```
+Android 8.0 or later. Copy the APK to the phone or tablet and open it.
+Allow “Install unknown apps” once. The APK is signed for sideloading
+(arm64, 32-bit ARM, and x86_64).
 
-## Build and run
+On Android you can also start a send from another app: select the files,
+Share, then GeniusTransfer.
 
-The toolchain on the development Mac is described in PLAN.md §8.1 (Flutter
-3.47, JDK 17, Android SDK under `/opt/homebrew/share/android-commandlinetools`,
-Xcode 27).
+### iPhone and iPad
 
-### iPhone (free Apple ID, reinstall weekly)
+iOS 15 or later. The IPA is unsigned, so a sideloader has to sign it with
+your Apple ID before it can be installed. After the first install, open
+Settings › General › VPN & Device Management, tap your Apple ID, and choose
+Trust. Turn on Developer Mode if iOS asks for it.
 
-One-time setup:
+An install signed with a free Apple ID expires after 7 days. Install the
+app again to keep using it.
 
-1. Xcode › Settings › Accounts: your Apple ID is signed in (Personal Team
-   `SD8W7DS5GY` is already set in the project).
-2. On the iPhone: Settings › Privacy & Security › **Developer Mode** on.
-3. After the first install: Settings › General › **VPN & Device Management**
-   › your Apple ID › **Trust**.
+### macOS
 
-Every week (the free profile expires after 7 days), with the iPhone plugged
-in or on the same Wi-Fi:
+macOS 12 or later, Apple silicon and Intel. Open the disk image and drag
+GeniusTransfer to Applications, then launch it from there.
+
+The app is signed for local use and is not notarized. If macOS blocks the
+first launch, allow it in System Settings › Privacy & Security › Open
+Anyway. The first time another device connects, allow incoming connections
+when macOS asks.
+
+### Windows
+
+Windows 10 or 11, 64-bit. Run the installer. It installs for the current
+user, into `%LOCALAPPDATA%\GeniusTransfer`, and adds a Start menu shortcut.
+
+The installer is not code-signed. If SmartScreen warns that the app is
+unrecognized, choose More info › Run anyway. When Windows Defender Firewall
+asks, allow GeniusTransfer on private networks. If that Wi-Fi is set to
+Public, switch it to Private in Settings › Network, or allow public
+networks as well. Guests cannot connect until the firewall allows the app.
+
+### Debian Linux
+
+Debian 12, with a graphical desktop. Install the package that matches
+`dpkg --print-architecture`:
 
 ```bash
-tool/ios_install.sh "iPhone Marley"
+sudo apt install ./GeniusTransfer-0.1.0-linux-amd64.deb
+# On ARM64, use GeniusTransfer-0.1.0-linux-arm64.deb instead.
 ```
 
-### Android (sideloaded APK)
+Launch GeniusTransfer from the applications menu, or run `geniustransfer`.
+If a firewall is enabled, allow the port shown in the app from your local
+network.
+
+## How a transfer works
+
+On the device that has the app:
+
+1. **Send files.** Pick photos, videos, or other files, then choose
+   **Show the code**.
+2. **Receive files.** The other device picks the files in its browser.
+   GeniusTransfer asks you to accept or decline before anything is saved.
+
+On the other device, open the camera and point it at the code, then open
+the link. On a computer, type the address shown under the code. Capital
+letters and dashes are optional.
+
+Keep GeniusTransfer open until the transfer finishes. On an iPhone, leaving
+the app pauses transfers until you come back. A session also stops after
+30 minutes with no activity.
+
+Chrome on Android may ask you to keep a download of some file types, such
+as HEIC, PDF, and ZIP. Photos and common video and audio types usually
+download directly. Next to a HEIC photo, **Download as JPG** saves a JPEG
+copy that opens in Gallery.
+
+### Where received files go
+
+| Host | Default folder |
+|---|---|
+| Android | Pictures, Movies, or Download › GeniusTransfer, by file type |
+| iPhone | Files › On My iPhone › GeniusTransfer › Received |
+| Mac, Windows, Linux | Downloads › GeniusTransfer |
+
+Settings can point received files at another folder. On an iPhone, photos
+and videos in the app’s Received folder can also be saved to Photos.
+
+Sending the same name twice saves the second file as `name (1).ext`.
+
+### No shared Wi-Fi
+
+Both devices have to be on the same network. Guest, hotel, and café Wi-Fi
+often keep devices from seeing each other.
+
+On Android, when there is no usable network, the app can start its own
+hotspot. The other phone scans a Wi-Fi code (or joins that network by name
+and password), then scans a second code to open the page. That hotspot has
+no internet. If the other phone asks whether to stay connected, stay
+connected.
+
+On an iPhone or a computer, join the other phone’s hotspot, then come back
+to GeniusTransfer. The code updates on its own. An iPhone hotspot is
+Settings › Personal Hotspot › Allow Others to Join. An Android hotspot is
+under Settings › Connections or Network › Hotspot.
+
+### Optional PIN
+
+Settings › Privacy › **Ask for a PIN**. Each session shows a 4-digit PIN
+next to the code. The browser asks for it before showing the page. After
+5 wrong attempts the session locks.
+
+## What stays on the devices
+
+Each session serves a page and the chosen files from the host, on local
+addresses only (private, link-local, and similar LAN ranges). The address
+contains a fresh 128-bit token. A request without that token is refused.
+The page does not load anything from the internet.
+
+Uploads wait for Accept on the host. With the PIN turned on, the page stays
+hidden until the PIN is entered. The host approves every batch, and a batch
+nobody answers is dropped.
+
+## Build from source
+
+The release above was built with Flutter 3.47.7 (Dart 3.13). Install
+[Flutter](https://docs.flutter.dev/get-started/install) and the platform
+tools for the target you want, then build from `app/`.
+
+### Android
 
 ```bash
-tool/android_apk.sh
+tool/android_apk.sh release
 ```
 
-This builds `app/build/app/outputs/flutter-apk/app-debug.apk` and installs it
-on a device connected with USB debugging. To install by hand, copy the APK to
-the phone or tablet and open it (allow "Install unknown apps" once). For
-field tests, `tool/android_apk.sh release` gives a smaller, faster APK.
+This writes `app/build/app/outputs/flutter-apk/app-release.apk`. If a
+device is connected with USB debugging, the script installs it. Otherwise
+copy the APK to the phone and open it. `tool/android_apk.sh` with no
+argument builds a debug APK.
+
+### iPhone
+
+A device install has to be signed with your own Apple ID. Open
+`app/ios/Runner.xcodeproj` in Xcode, select the Runner target, and under
+Signing & Capabilities choose your team. The project file currently names
+one Personal Team; replace it with yours.
+
+On the iPhone, turn on Settings › Privacy & Security › Developer Mode.
+Then, with the phone plugged in or on the same Wi-Fi:
+
+```bash
+tool/ios_install.sh              # lists connected iPhones
+tool/ios_install.sh "<device name or id>"
+```
+
+Release mode is required: a Flutter debug build on iOS only starts when
+launched from Xcode or `flutter run`. After the first install, trust your
+Apple ID under Settings › General › VPN & Device Management. A free
+Personal Team profile expires after 7 days; run the script again.
 
 ### macOS
 
@@ -72,78 +188,73 @@ field tests, `tool/android_apk.sh release` gives a smaller, faster APK.
 tool/macos_build.sh
 ```
 
-The first time a guest connects, macOS may ask whether GeniusTransfer may
-accept incoming connections: choose **Allow**.
+The app is `app/build/macos/Build/Products/Release/GeniusTransfer.app`.
+On another Mac, Gatekeeper blocks an ad-hoc signed app the first time:
+open it, then allow it under System Settings › Privacy & Security.
 
 ### Windows
 
-Flutter cannot build Windows apps on a Mac. On a Windows 10/11 PC:
+On a Windows 10 or 11 PC, install Flutter and Visual Studio 2022 with the
+**Desktop development with C++** workload. In `app\`:
 
-1. Install [Flutter](https://docs.flutter.dev/get-started/install/windows/desktop)
-   and Visual Studio 2022 with the **Desktop development with C++** workload.
-2. Copy this repository to the PC, then in `app\`:
-   ```
-   flutter build windows --release
-   ```
-3. The app is the whole folder `app\build\windows\x64\runner\Release\`
-   (`GeniusTransfer.exe` plus its DLLs and `data\`); zip that folder to move it.
-4. Windows SmartScreen may warn that the app is unrecognized (it is not
-   code-signed): **More info › Run anyway**.
-5. When Windows Defender Firewall asks, **allow GeniusTransfer on private
-   networks**. Guests cannot connect otherwise. If your Wi-Fi is set to a
-   *Public* network, either switch it to *Private* in Settings › Network or
-   also allow public networks.
-
-### Debian Linux (AMD64 and ARM64)
-
-Download the `.deb` matching your machine's architecture (`dpkg --print-architecture`)
-from the GitHub release, then install it with:
-
-```bash
-sudo apt install ./GeniusTransfer-0.1.0-linux-amd64.deb
-# On ARM64, use GeniusTransfer-0.1.0-linux-arm64.deb instead.
+```
+flutter build windows --release
 ```
 
-Launch **GeniusTransfer** from the applications menu, or run `geniustransfer`.
-Packages are built on Debian 12 with GTK 3. A desktop session is required.
-If a firewall is enabled, allow the app's displayed port from your local network.
+The app is the folder `app\build\windows\x64\runner\Release\`
+(`GeniusTransfer.exe`, its DLLs, and `data\`). Zip that folder to move it.
+The `.exe` on the release page is a per-user installer of that same build.
 
-To build on Debian 12, install Flutter 3.47.7 and the dependencies listed in
-`tool/linux.Dockerfile`, then run `tool/linux_deb.sh`. This produces a release
-package for the current machine's architecture under `app/build/releases/`.
-The Dockerfile provides the same build environment for either architecture;
-copy the repository into a container and run the script there. Each architecture
-must use its own build directory and Flutter SDK.
+### Debian Linux
+
+On Debian 12, install Flutter 3.47.7 and the packages listed in
+`tool/linux.Dockerfile`, then run `tool/linux_deb.sh`. The script builds a
+`.deb` for the machine’s architecture under `app/build/releases/`.
+
+`tool/linux.Dockerfile` is the same build environment. Build AMD64 and
+ARM64 separately; each architecture needs its own build directory and
+Flutter SDK.
 
 ## Tests
 
 ```bash
-cd packages/transfer_server && dart test   # server: token gate, traversal, Range, streaming, memory, uploads
-cd app && flutter test                     # app: network interface ranking, approval sheet
+cd packages/transfer_server && dart test   # token gate, paths, Range, streaming, uploads
+cd app && flutter test                     # network choice, approval sheet
 ```
 
-### End-to-end self-test from the Mac
-
 A build made with `--dart-define=GT_SELFTEST=true` shares three generated
-files on launch and logs `GT_SELFTEST_URL=…`. Then, from the Mac on the same
-network:
+files on launch and logs `GT_SELFTEST_URL=…`. From another machine on the
+same network:
 
 ```bash
 python3 -I tool/selftest_check.py <GT_SELFTEST_URL>
 ```
 
-It downloads every file as a guest browser would and checks sizes,
-checksums, Range requests, the token gate and the security headers.
+The script downloads every file the way a guest browser would, and checks
+sizes, checksums, Range requests, the token gate, and the response headers.
 
-To check receiving, build with
-`--dart-define=GT_SELFTEST=true --dart-define=GT_SELFTEST_MODE=receive`.
-The app opens a receiving session that accepts every offer. Then:
+To check receiving, add `--dart-define=GT_SELFTEST_MODE=receive`. The app
+opens a session that accepts every offer. Then:
 
 ```bash
 python3 -I tool/selftest_upload.py <GT_SELFTEST_URL>
 ```
 
-It uploads five files as a guest browser would: three the way the page's
-script does, and two through the plain form used without JavaScript. The
-app checks each file's content and logs `GT_SELFTEST_RECEIVED=<name>|<size>|ok`
-and `GT_SELFTEST_SAVED=<name>|<size>|<folder>|<path>`.
+It uploads five files, three the way the page’s script does and two through
+the plain form used when JavaScript is unavailable. The app checks each
+file and logs `GT_SELFTEST_RECEIVED=<name>|<size>|ok` and
+`GT_SELFTEST_SAVED=<name>|<size>|<folder>|<path>`.
+
+## Repository layout
+
+```
+app/                       Flutter app (iOS, Android, macOS, Windows, Linux)
+  lib/                     UI, session logic, network detection
+  android/…/kotlin/        File pickers, saving, sharing, hotspot
+  ios/Runner/AppDelegate.swift   Background time to finish downloads
+packages/transfer_server/  HTTP server and guest page (pure Dart)
+tool/                      Build scripts and the end-to-end checkers
+```
+
+Platform research and the design decisions behind the app are in
+[PLAN.md](PLAN.md).
