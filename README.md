@@ -94,6 +94,27 @@ Flutter cannot build Windows apps on a Mac. On a Windows 10/11 PC:
    *Public* network, either switch it to *Private* in Settings › Network or
    also allow public networks.
 
+### Debian Linux (AMD64 and ARM64)
+
+Download the `.deb` matching your machine's architecture (`dpkg --print-architecture`)
+from the GitHub release, then install it with:
+
+```bash
+sudo apt install ./GeniusTransfer-0.1.0-linux-amd64.deb
+# On ARM64, use GeniusTransfer-0.1.0-linux-arm64.deb instead.
+```
+
+Launch **GeniusTransfer** from the applications menu, or run `geniustransfer`.
+Packages are built on Debian 12 with GTK 3. A desktop session is required.
+If a firewall is enabled, allow the app's displayed port from your local network.
+
+To build on Debian 12, install Flutter 3.47.7 and the dependencies listed in
+`tool/linux.Dockerfile`, then run `tool/linux_deb.sh`. This produces a release
+package for the current machine's architecture under `app/build/releases/`.
+The Dockerfile provides the same build environment for either architecture;
+copy the repository into a container and run the script there. Each architecture
+must use its own build directory and Flutter SDK.
+
 ## Tests
 
 ```bash
