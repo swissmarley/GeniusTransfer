@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GeniusTransfer
+Comment=Transfer files with nearby devices over your local network
+Exec=geniustransfer
+Icon=com.nakya.geniustransfer
+Terminal=false
+Categories=Network;FileTransfer;
+StartupWMClass=com.nakya.geniustransfer
