@@ -258,3 +258,7 @@ tool/                      Build scripts and the end-to-end checkers
 
 Platform research and the design decisions behind the app are in
 [PLAN.md](PLAN.md).
+
+## License
+
+[MIT](LICENSE) © swissmarley
