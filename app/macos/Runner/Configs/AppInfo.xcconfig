@@ -8,7 +8,7 @@
 PRODUCT_NAME = GeniusTransfer
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.nakya.geniustransfer
+PRODUCT_BUNDLE_IDENTIFIER = com.swissmarley.geniustransfer
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026. All rights reserved.
