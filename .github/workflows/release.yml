@@ -1,0 +1,205 @@
+name: Release
+
+# Push a tag such as 1.0.0 to build every platform and attach the files to a
+# draft GitHub release. The tag must match the version in app/pubspec.yaml.
+# Builds are unsigned or ad-hoc signed, like release 0.1.0: Android is signed
+# for sideloading, the IPA must be signed by a sideloader, the Mac app is not
+# notarized, and the Windows installer is not code-signed.
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to build and release (must match app/pubspec.yaml)
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - id: version
+        name: Tag matches the app version
+        run: |
+          version="$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)"
+          if [ "$version" != "$TAG" ]; then
+            echo "Tag $TAG does not match app/pubspec.yaml version $version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Server tests
+        working-directory: packages/transfer_server
+        run: dart pub get && dart test -j 1
+      - name: App analysis and tests
+        working-directory: app
+        run: flutter pub get && flutter analyze && flutter test
+
+  android:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - working-directory: app
+        run: flutter build apk --release
+      - run: cp app/build/app/outputs/flutter-apk/app-release.apk "GeniusTransfer-${TAG}-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: GeniusTransfer-*-android.apk
+
+  windows:
+    needs: check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - working-directory: app
+        run: flutter build windows --release
+      - name: Installer
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          $src = (Resolve-Path app\build\windows\x64\runner\Release).Path
+          & $iscc "/DAppVersion=$env:TAG" "/DSourceDir=$src" "/DOutputDir=$PWD" tool\windows_installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: GeniusTransfer-*-windows-x64.exe
+
+  macos:
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Build without the maintainer's signing team
+        working-directory: app
+        run: |
+          # The project is set up for a paid team; CI has no certificate, so
+          # build ad-hoc signed, like release 0.1.0.
+          pbx=macos/Runner.xcodeproj/project.pbxproj
+          sed -i '' '/DEVELOPMENT_TEAM = /d' "$pbx"
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/' "$pbx"
+          sed -i '' 's/CODE_SIGN_IDENTITY = "[^"]*";/CODE_SIGN_IDENTITY = "-";/' "$pbx"
+          flutter build macos --release
+          codesign --force --deep --sign - build/macos/Build/Products/Release/GeniusTransfer.app
+      - name: Disk image
+        run: |
+          mkdir dmg
+          cp -R app/build/macos/Build/Products/Release/GeniusTransfer.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname GeniusTransfer -srcfolder dmg -ov -format UDZO \
+            "GeniusTransfer-${TAG}-macos-universal.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: GeniusTransfer-*-macos-universal.dmg
+
+  ios:
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - working-directory: app
+        run: flutter build ios --release --no-codesign
+      - name: Unsigned IPA
+        run: |
+          mkdir Payload
+          cp -R app/build/ios/iphoneos/Runner.app Payload/
+          zip -qry "GeniusTransfer-${TAG}-ios-unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: GeniusTransfer-*-ios-unsigned.ipa
+
+  linux:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Build image (Debian 12, as for release 0.1.0)
+        run: docker build -f tool/linux.Dockerfile -t gt-linux --build-arg FLUTTER_VERSION="$FLUTTER_VERSION" tool
+      - name: Build package
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work gt-linux bash -c \
+            'git config --global --add safe.directory "*" && tool/linux_deb.sh'
+          sudo chown -R "$USER" app/build
+      - run: cp app/build/releases/GeniusTransfer-*-linux-${{ matrix.arch }}.deb .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: GeniusTransfer-*-linux-${{ matrix.arch }}.deb
+
+  release:
+    needs: [check, android, windows, macos, ios, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum GeniusTransfer-* | tee SHA256SUMS.txt
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
+            --draft --verify-tag --title "GeniusTransfer $TAG" \
+            --notes "Builds for Android, iPhone and iPad (unsigned), Mac, Windows, and Debian (AMD64 and ARM64). See the README for install steps."
