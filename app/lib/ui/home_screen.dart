@@ -74,7 +74,8 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (_) => SendScreen(
               platform: platform,
               shared: shared,
-              requirePin: settings.requirePin)),
+              requirePin: settings.requirePin,
+              secure: settings.useHttps)),
     );
     if (reason == StopReason.idle) {
       messenger.showSnackBar(SnackBar(content: Text(l.sessionIdleStopped)));
@@ -107,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
           settings: settings,
           stagingDir: staging,
           requirePin: settings.requirePin,
+          secure: settings.useHttps,
           startHotspot: hotspot),
     ));
     if (reason == StopReason.idle) {

@@ -27,6 +27,7 @@ class SessionScreen extends StatefulWidget {
       required this.files,
       required this.platform,
       this.requirePin = false,
+      this.secure = false,
       this.startHotspot = false})
       : settings = null,
         stagingDir = null;
@@ -38,6 +39,7 @@ class SessionScreen extends StatefulWidget {
     required AppSettings this.settings,
     required Directory this.stagingDir,
     this.requirePin = false,
+    this.secure = false,
     this.startHotspot = false,
   }) : files = const [];
 
@@ -52,6 +54,9 @@ class SessionScreen extends StatefulWidget {
 
   /// Guests must type a PIN, made up for this session and shown here.
   final bool requirePin;
+
+  /// Serve HTTPS (self-signed) instead of plain HTTP.
+  final bool secure;
 
   bool get receiving => settings != null;
 
@@ -82,6 +87,7 @@ class _SessionScreenState extends State<SessionScreen> {
         ? SessionController.send(
             files: widget.files,
             pin: pin,
+            secure: widget.secure,
             platform: widget.platform,
             notificationTitle: l.notificationTitle,
             notificationText: l.notificationText,
@@ -90,6 +96,7 @@ class _SessionScreenState extends State<SessionScreen> {
         : SessionController.receive(
             stagingDir: widget.stagingDir!,
             pin: pin,
+            secure: widget.secure,
             delivery: Delivery(platform: widget.platform, settings: settings),
             platform: widget.platform,
             notificationTitle: l.notificationReceiveTitle,
@@ -254,6 +261,7 @@ class _SessionScreenState extends State<SessionScreen> {
             final help = _showHelp
                 ? _Help(
                     desktop: _desktop,
+                    secure: c.server.secure,
                     onStartHotspot: c.hotspot == null ? hotspot : null,
                     onOtherWays: _otherWays)
                 : null;
@@ -395,6 +403,19 @@ class _CodePanel extends StatelessWidget {
         const SizedBox(height: 12),
         Text(receiving ? l.receiveScanHint : l.sessionScanHint,
             textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
+        if (c.server.secure) ...[
+          const SizedBox(height: 8),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.lock_outline_rounded,
+                size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(l.sessionHttpsHint,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium),
+            ),
+          ]),
+        ],
         if (c.pin != null) ...[
           const SizedBox(height: 16),
           _PinCard(controller: c),
@@ -739,10 +760,12 @@ class _Note extends StatelessWidget {
 class _Help extends StatelessWidget {
   const _Help(
       {required this.desktop,
+      required this.secure,
       required this.onStartHotspot,
       required this.onOtherWays});
 
   final bool desktop;
+  final bool secure;
   final VoidCallback? onStartHotspot;
   final VoidCallback onOtherWays;
 
@@ -755,6 +778,7 @@ class _Help extends StatelessWidget {
       l.helpIsolation,
       l.helpStayConnected,
       l.helpTypeAddress,
+      if (secure) l.helpHttps,
       if (desktop) l.helpFirewall,
     ];
     return Card(

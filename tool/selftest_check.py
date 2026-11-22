@@ -14,6 +14,7 @@ security headers. Standard library only.
 
 import hashlib
 import re
+import ssl
 import sys
 import time
 import urllib.error
@@ -42,10 +43,17 @@ def expected_sha256(size):
     return h.hexdigest()
 
 
+# A host serving HTTPS uses a certificate it made itself, which nothing can
+# vouch for; the checks here are about content, not about that certificate.
+_TLS = ssl.create_default_context()
+_TLS.check_hostname = False
+_TLS.verify_mode = ssl.CERT_NONE
+
+
 def fetch(url, headers=None, method="GET"):
     req = urllib.request.Request(url, headers=headers or {}, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with urllib.request.urlopen(req, timeout=60, context=_TLS) as r:
             return r.status, dict(r.headers), r.read()
     except urllib.error.HTTPError as e:
         return e.code, dict(e.headers), e.read()

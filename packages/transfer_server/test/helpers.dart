@@ -50,10 +50,11 @@ Uint8List pattern(int length, {int offset = 0}) => Uint8List.fromList(
 
 /// Starts a server on 127.0.0.1 with an ephemeral port.
 Future<TransferServer> startServer(List<SharedFile> files,
-    {ServerConfig? config, String? token}) async {
+    {ServerConfig? config, String? token, bool secure = false}) async {
   final server = TransferServer(
       files: files,
       token: token,
+      secure: secure,
       config: config ?? const ServerConfig(preferredPort: 0));
   await server.start([loopback]);
   return server;
@@ -78,9 +79,10 @@ Future<Reply> send(
   String? hostOverride,
   List<int>? body,
 }) async {
-  final client = HttpClient()..autoUncompress = false;
+  final client = clientFor(server);
   try {
-    final uri = Uri.parse('http://127.0.0.1:${server.port}$path');
+    final scheme = server.secure ? 'https' : 'http';
+    final uri = Uri.parse('$scheme://127.0.0.1:${server.port}$path');
     final request = await client.openUrl(method, uri);
     request.followRedirects = false;
     if (hostOverride != null) request.headers.host = hostOverride;
@@ -98,6 +100,17 @@ Future<Reply> send(
   } finally {
     client.close(force: true);
   }
+}
+
+/// An HTTP client for [server]. For HTTPS it trusts exactly the server's
+/// own certificate, so the chain, the address and the dates are checked.
+HttpClient clientFor(TransferServer server) {
+  final identity = server.tlsIdentity;
+  final context = identity == null
+      ? null
+      : (SecurityContext(withTrustedRoots: false)
+        ..setTrustedCertificatesBytes(utf8.encode(identity.certificatePem)));
+  return HttpClient(context: context)..autoUncompress = false;
 }
 
 /// Sends raw bytes on a new TCP connection and returns everything the

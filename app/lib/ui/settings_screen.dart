@@ -103,6 +103,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         subtitle: Text(l.settingsPinBody),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Card(
+                      child: SwitchListTile(
+                        value: widget.settings.useHttps,
+                        onChanged: widget.settings.setUseHttps,
+                        title: Text(l.settingsHttpsTitle),
+                        subtitle: Text(l.settingsHttpsBody),
+                      ),
+                    ),
                   ],
                 );
               },

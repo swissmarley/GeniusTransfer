@@ -64,6 +64,7 @@ extension _Pin on TransferServer {
       response.cookies.add(Cookie(_pinCookie, grant)
         ..path = '/$tokenSegment/'
         ..httpOnly = true
+        ..secure = secure
         ..sameSite = SameSite.lax);
       return _writeBody(response, const [], head: true);
     }

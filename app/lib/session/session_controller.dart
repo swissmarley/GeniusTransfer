@@ -21,6 +21,9 @@ const kSelfTest = bool.fromEnvironment('GT_SELFTEST');
 /// receiving session that accepts every offer and checks what arrives.
 const kSelfTestMode = String.fromEnvironment('GT_SELFTEST_MODE');
 
+/// With [kSelfTest]: serve HTTPS (`--dart-define=GT_SELFTEST_HTTPS=true`).
+const kSelfTestHttps = bool.fromEnvironment('GT_SELFTEST_HTTPS');
+
 enum SessionPhase { starting, active, noNetwork, stopped }
 
 enum StopReason { user, idle, notification, failed }
@@ -63,6 +66,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   SessionController.send({
     required List<SharedFile> files,
     String? pin,
+    bool secure = false,
     required this.platform,
     required this.notificationTitle,
     required this.notificationText,
@@ -71,6 +75,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
         server = TransferServer(
           files: files,
           pin: pin,
+          secure: secure,
           // Apple hosts can turn HEIC photos into JPEG for other guests.
           jpegCopy: Platform.isIOS || Platform.isMacOS
               ? (heic) => makeJpegCopy(platform, heic)
@@ -85,6 +90,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   SessionController.receive({
     required Directory this.stagingDir,
     String? pin,
+    bool secure = false,
     required Delivery this.delivery,
     required this.platform,
     required this.notificationTitle,
@@ -94,6 +100,7 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
         server = TransferServer(
           mode: SessionMode.receive,
           pin: pin,
+          secure: secure,
           receiveOptions: ReceiveOptions(
             stagingDir: stagingDir,
             freeBytes: () => platform.freeBytes(stagingDir.path),
@@ -185,7 +192,8 @@ class SessionController extends ChangeNotifier with WidgetsBindingObserver {
   /// `http://192.168.1.23:8080/K7QX-ABCD-…-YZ/`.
   String? get typeableUrl => shown == null || server.port == null
       ? null
-      : 'http://${shown!.address.address}:${server.port}/'
+      : '${server.secure ? 'https' : 'http'}://'
+          '${shown!.address.address}:${server.port}/'
           '${groupToken(server.token)}/';
 
   /// When the code was first shown (for the "not opening?" help).

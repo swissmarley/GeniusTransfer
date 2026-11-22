@@ -850,6 +850,30 @@ abstract class AppLocalizations {
   /// **'The other device must type a 4-digit PIN shown next to the code. Useful in public places: someone who scans the code without the PIN sees nothing.'**
   String get settingsPinBody;
 
+  /// No description provided for @settingsHttpsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt transfers (HTTPS)'**
+  String get settingsHttpsTitle;
+
+  /// No description provided for @settingsHttpsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Files are encrypted on the network, so other devices on the same Wi-Fi cannot read them. The certificate is made by this device, so the other browser warns once that the connection is not private. Continue anyway: Show Details › visit this website in Safari, Advanced › Proceed in Chrome.'**
+  String get settingsHttpsBody;
+
+  /// No description provided for @sessionHttpsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted. The browser will say the connection is not private: that is expected, continue to the page.'**
+  String get sessionHttpsHint;
+
+  /// No description provided for @helpHttps.
+  ///
+  /// In en, this message translates to:
+  /// **'The browser warns that the connection is not private? The code uses this device\'s own certificate. In Safari, tap Show Details, then visit this website. In Chrome, tap Advanced, then Proceed. Type the address with https:// at the start.'**
+  String get helpHttps;
+
   /// No description provided for @sessionPinLabel.
   ///
   /// In en, this message translates to:
