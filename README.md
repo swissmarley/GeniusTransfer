@@ -128,6 +128,22 @@ to GeniusTransfer. The code updates on its own. An iPhone hotspot is
 Settings › Personal Hotspot › Allow Others to Join. An Android hotspot is
 under Settings › Connections or Network › Hotspot.
 
+### Encryption (HTTPS)
+
+Settings › Privacy › **Encrypt transfers (HTTPS)**, off by default. When
+turned on, the session is served over HTTPS, so other devices on the same Wi-Fi or hotspot
+cannot read the files or the page as they travel.
+
+A certificate authority cannot vouch for a device on a local network, and
+GeniusTransfer works offline, so each session makes its own self-signed
+certificate. The other device’s browser therefore says the connection is
+not private the first time it opens the code. That is expected: in Safari,
+tap Show Details, then visit this website; in Chrome, tap Advanced, then
+Proceed. When typing the address, include `https://` at the start.
+
+With the setting off (the default), sessions use plain HTTP and the browser
+shows no warning.
+
 ### Optional PIN
 
 Settings › Privacy › **Ask for a PIN**. Each session shows a 4-digit PIN
@@ -139,7 +155,13 @@ next to the code. The browser asks for it before showing the page. After
 Each session serves a page and the chosen files from the host, on local
 addresses only (private, link-local, and similar LAN ranges). The address
 contains a fresh 128-bit token. A request without that token is refused.
-The page does not load anything from the internet.
+The page does not load anything from the internet. With encryption turned
+on in Settings, everything is sent over HTTPS with a certificate made for
+that session.
+
+The browser cannot check who made that certificate, so HTTPS here stops
+anyone from reading traffic on the network, but not a determined attacker
+on the same network who answers in the host’s place.
 
 Uploads wait for Accept on the host. With the PIN turned on, the page stays
 hidden until the PIN is entered. The host approves every batch, and a batch
@@ -232,6 +254,9 @@ python3 -I tool/selftest_check.py <GT_SELFTEST_URL>
 
 The script downloads every file the way a guest browser would, and checks
 sizes, checksums, Range requests, the token gate, and the response headers.
+
+Add `--dart-define=GT_SELFTEST_HTTPS=true` to serve the session over HTTPS;
+both scripts accept the `https://` URL it logs.
 
 To check receiving, add `--dart-define=GT_SELFTEST_MODE=receive`. The app
 opens a session that accepts every offer. Then:

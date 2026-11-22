@@ -13,25 +13,38 @@ import 'platform/host_platform.dart';
 ///   On My iPhone › GeniusTransfer › Received on iOS, and Downloads ›
 ///   GeniusTransfer on computers.
 /// - [requirePin]: each session gets a 4-digit PIN the guest must type.
+/// - [useHttps]: sessions serve HTTPS with a self-signed certificate, so
+///   files are encrypted on the network. Off by default: the guest's
+///   browser warns about the self-signed certificate.
 class AppSettings extends ChangeNotifier {
-  AppSettings._(this._folder, this._requirePin);
+  AppSettings._(this._folder, this._requirePin, this._useHttps);
 
   /// Starts with [folder] (default: none) and touches no storage until
   /// something changes. For tests.
   @visibleForTesting
-  AppSettings.forTest({SaveFolder? folder, bool requirePin = false})
-      : this._(folder, requirePin);
+  AppSettings.forTest(
+      {SaveFolder? folder, bool requirePin = false, bool useHttps = false})
+      : this._(folder, requirePin, useHttps);
 
   static const _idKey = 'saveFolder.id';
   static const _nameKey = 'saveFolder.name';
   static const _pinKey = 'requirePin';
+  static const _httpsKey = 'useHttps';
 
   late final _prefs = SharedPreferencesAsync();
   SaveFolder? _folder;
   bool _requirePin;
+  bool _useHttps;
 
   SaveFolder? get folder => _folder;
   bool get requirePin => _requirePin;
+  bool get useHttps => _useHttps;
+
+  Future<void> setUseHttps(bool value) async {
+    _useHttps = value;
+    notifyListeners();
+    await _prefs.setBool(_httpsKey, value);
+  }
 
   Future<void> setRequirePin(bool value) async {
     _requirePin = value;
@@ -43,15 +56,17 @@ class AppSettings extends ChangeNotifier {
     final prefs = SharedPreferencesAsync();
     SaveFolder? folder;
     var requirePin = false;
+    var useHttps = false;
     try {
       final id = await prefs.getString(_idKey);
       final name = await prefs.getString(_nameKey);
       if (id != null && name != null) folder = SaveFolder(id: id, name: name);
       requirePin = await prefs.getBool(_pinKey) ?? false;
+      useHttps = await prefs.getBool(_httpsKey) ?? false;
     } catch (e) {
       debugPrint('Could not read settings: $e');
     }
-    return AppSettings._(folder, requirePin);
+    return AppSettings._(folder, requirePin, useHttps);
   }
 
   /// Lets the user choose a folder and remembers it. Returns false if they

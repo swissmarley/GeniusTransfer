@@ -19,12 +19,16 @@ class SendScreen extends StatefulWidget {
       {super.key,
       required this.platform,
       this.shared = const [],
-      this.requirePin = false});
+      this.requirePin = false,
+      this.secure = false});
 
   final HostPlatform platform;
 
   /// Guests must type a PIN (see SessionScreen.requirePin).
   final bool requirePin;
+
+  /// Serve HTTPS (see SessionScreen.secure).
+  final bool secure;
 
   /// Android: files shared with us by another app, to start with.
   final List<AndroidPickedFile> shared;
@@ -83,6 +87,7 @@ class _SendScreenState extends State<SendScreen> {
           files: files,
           platform: widget.platform,
           requirePin: widget.requirePin,
+          secure: widget.secure,
           startHotspot: hotspot),
     ));
     // The session is over: back to the start, with the reason.

@@ -1,4 +1,4 @@
-/// Local plain-HTTP server for GeniusTransfer.
+/// Local HTTP/HTTPS server for GeniusTransfer.
 ///
 /// A [TransferServer] serves one sharing session: the shared files and a
 /// self-contained guest page, under a secret token, on LAN addresses only.
@@ -14,5 +14,6 @@ export 'src/net_util.dart' show isLanAddress, isPrivateIpv4;
 export 'src/receive.dart';
 export 'src/server.dart' show ServerConfig, TransferServer, maxPinAttempts;
 export 'src/shared_file.dart';
+export 'src/tls.dart' show TlsIdentity;
 export 'src/token.dart' show generateToken, groupToken, tokenLength;
 export 'src/user_agent.dart';

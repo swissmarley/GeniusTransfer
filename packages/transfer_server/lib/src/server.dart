@@ -15,6 +15,7 @@ import 'net_util.dart';
 import 'range.dart';
 import 'receive.dart';
 import 'shared_file.dart';
+import 'tls.dart';
 import 'token.dart';
 import 'user_agent.dart';
 
@@ -48,8 +49,12 @@ class ServerConfig {
   final Duration progressInterval;
 }
 
-/// One sharing session: a plain-HTTP server that serves [files] and a guest
+/// One sharing session: an HTTP server that serves [files] and a guest
 /// page under `/<token>/`, on the given LAN addresses only.
+///
+/// With [secure], it serves HTTPS with a self-signed certificate made for
+/// this session and its addresses (see [TlsIdentity]), so the files are
+/// encrypted on the network. Without it, plain HTTP.
 ///
 /// In [SessionMode.receive] it serves an upload page instead, and guests
 /// can send files to the host after it accepts them (see [approveUpload]).
@@ -68,6 +73,7 @@ class TransferServer {
     this.receiveOptions,
     this.pin,
     this.jpegCopy,
+    this.secure = false,
   })  : files = List.unmodifiable(files),
         token = token ?? generateToken() {
     if (mode == SessionMode.receive && receiveOptions == null) {
@@ -84,6 +90,15 @@ class TransferServer {
   final ServerConfig config;
   final SessionMode mode;
   final ReceiveOptions? receiveOptions;
+
+  /// Serve HTTPS instead of plain HTTP.
+  final bool secure;
+  TlsIdentity? _identity;
+  String _identityKey = '';
+
+  /// The certificate served, while [secure] and started. Its [fingerprint]
+  /// is what a careful guest can compare in the browser's certificate view.
+  TlsIdentity? get tlsIdentity => _identity;
 
   /// If set, guests must type it before they see anything. After
   /// [maxPinAttempts] wrong tries the session accepts no more.
@@ -141,13 +156,13 @@ class TransferServer {
   /// Uploads in progress (receive mode).
   int get activeUploads => _activeUploads;
 
-  /// The guest URL for the first address: `http://<ip>:<port>/<TOKEN>/`.
+  /// The guest URL for the first address: `http(s)://<ip>:<port>/<TOKEN>/`.
   Uri? get url => _addresses.isEmpty || _port == null
       ? null
       : urlFor(_addresses.first);
 
   Uri urlFor(InternetAddress address) => Uri(
-      scheme: 'http', host: address.address, port: _port, path: '/$token/');
+      scheme: secure ? 'https' : 'http', host: address.address, port: _port, path: '/$token/');
 
   /// Starts listening on [addresses] (normally one private IPv4 address).
   Future<void> start(List<InternetAddress> addresses) async {
@@ -237,6 +252,7 @@ class TransferServer {
 
   Future<void> _bind(List<InternetAddress> addresses) async {
     if (addresses.isEmpty) throw ArgumentError('No address to listen on.');
+    final context = secure ? (await _securityContext(addresses)) : null;
     await suspend();
     final ports = <int>{
       ?_port,
@@ -249,7 +265,9 @@ class TransferServer {
       try {
         var port = candidate;
         for (final address in addresses) {
-          final server = await HttpServer.bind(address, port);
+          final server = context == null
+              ? await HttpServer.bind(address, port)
+              : await HttpServer.bindSecure(address, port, context);
           port = server.port;
           bound.add(server);
         }
@@ -270,6 +288,19 @@ class TransferServer {
       }
     }
     throw lastError ?? StateError('Could not listen on any port.');
+  }
+
+  /// A certificate for [addresses]; made again only when they change.
+  Future<SecurityContext> _securityContext(
+      List<InternetAddress> addresses) async {
+    final key = addresses.map((a) => a.address).join(',');
+    var identity = _identity;
+    if (identity == null || key != _identityKey) {
+      identity = await TlsIdentity.generate(addresses);
+      _identity = identity;
+      _identityKey = key;
+    }
+    return identity.securityContext;
   }
 
   void _configure(HttpServer server) {

@@ -22,6 +22,7 @@ Standard library only.
 
 import http.client
 import json
+import ssl
 import sys
 import time
 import urllib.parse
@@ -57,11 +58,20 @@ def check(name, ok, detail=""):
 class Guest:
     def __init__(self, url):
         u = urllib.parse.urlsplit(url)
-        self.host, self.port = u.hostname, u.port or 80
+        self.https = u.scheme == "https"
+        self.host, self.port = u.hostname, u.port or (443 if self.https else 80)
         self.base = u.path if u.path.endswith("/") else u.path + "/"
 
     def request(self, method, path, body=None, headers=None, timeout=60):
-        conn = http.client.HTTPConnection(self.host, self.port, timeout=timeout)
+        if self.https:
+            # The host's certificate is self-signed; see selftest_check.py.
+            tls = ssl.create_default_context()
+            tls.check_hostname = False
+            tls.verify_mode = ssl.CERT_NONE
+            conn = http.client.HTTPSConnection(
+                self.host, self.port, timeout=timeout, context=tls)
+        else:
+            conn = http.client.HTTPConnection(self.host, self.port, timeout=timeout)
         try:
             h = {"User-Agent": SAFARI_IPHONE}
             h.update(headers or {})

@@ -70,7 +70,8 @@ class _SelfTestScreenState extends State<SelfTestScreen> {
     if (!mounted) return;
     final navigator = Navigator.of(context);
     await navigator.push(MaterialPageRoute<void>(
-      builder: (_) => SessionScreen(files: shared, platform: widget.platform),
+      builder: (_) => SessionScreen(
+          files: shared, platform: widget.platform, secure: kSelfTestHttps),
     ));
     _continueNormally(navigator);
   }
@@ -83,7 +84,8 @@ class _SelfTestScreenState extends State<SelfTestScreen> {
       builder: (_) => SessionScreen.receive(
           platform: widget.platform,
           settings: widget.settings,
-          stagingDir: staging),
+          stagingDir: staging,
+          secure: kSelfTestHttps),
     ));
     _continueNormally(navigator);
   }
