@@ -130,8 +130,8 @@ under Settings › Connections or Network › Hotspot.
 
 ### Encryption (HTTPS)
 
-Settings › Privacy › **Encrypt transfers (HTTPS)**, on by default. The
-session is served over HTTPS, so other devices on the same Wi-Fi or hotspot
+Settings › Privacy › **Encrypt transfers (HTTPS)**, off by default. When
+turned on, the session is served over HTTPS, so other devices on the same Wi-Fi or hotspot
 cannot read the files or the page as they travel.
 
 A certificate authority cannot vouch for a device on a local network, and
@@ -141,7 +141,8 @@ not private the first time it opens the code. That is expected: in Safari,
 tap Show Details, then visit this website; in Chrome, tap Advanced, then
 Proceed. When typing the address, include `https://` at the start.
 
-Turn the setting off to go back to plain HTTP with no warning.
+With the setting off (the default), sessions use plain HTTP and the browser
+shows no warning.
 
 ### Optional PIN
 
@@ -154,8 +155,8 @@ next to the code. The browser asks for it before showing the page. After
 Each session serves a page and the chosen files from the host, on local
 addresses only (private, link-local, and similar LAN ranges). The address
 contains a fresh 128-bit token. A request without that token is refused.
-The page does not load anything from the internet. With encryption on
-(the default), everything is sent over HTTPS with a certificate made for
+The page does not load anything from the internet. With encryption turned
+on in Settings, everything is sent over HTTPS with a certificate made for
 that session.
 
 The browser cannot check who made that certificate, so HTTPS here stops

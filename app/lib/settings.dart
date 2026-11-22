@@ -14,7 +14,8 @@ import 'platform/host_platform.dart';
 ///   GeniusTransfer on computers.
 /// - [requirePin]: each session gets a 4-digit PIN the guest must type.
 /// - [useHttps]: sessions serve HTTPS with a self-signed certificate, so
-///   files are encrypted on the network. On by default.
+///   files are encrypted on the network. Off by default: the guest's
+///   browser warns about the self-signed certificate.
 class AppSettings extends ChangeNotifier {
   AppSettings._(this._folder, this._requirePin, this._useHttps);
 
@@ -22,7 +23,7 @@ class AppSettings extends ChangeNotifier {
   /// something changes. For tests.
   @visibleForTesting
   AppSettings.forTest(
-      {SaveFolder? folder, bool requirePin = false, bool useHttps = true})
+      {SaveFolder? folder, bool requirePin = false, bool useHttps = false})
       : this._(folder, requirePin, useHttps);
 
   static const _idKey = 'saveFolder.id';
@@ -55,13 +56,13 @@ class AppSettings extends ChangeNotifier {
     final prefs = SharedPreferencesAsync();
     SaveFolder? folder;
     var requirePin = false;
-    var useHttps = true;
+    var useHttps = false;
     try {
       final id = await prefs.getString(_idKey);
       final name = await prefs.getString(_nameKey);
       if (id != null && name != null) folder = SaveFolder(id: id, name: name);
       requirePin = await prefs.getBool(_pinKey) ?? false;
-      useHttps = await prefs.getBool(_httpsKey) ?? true;
+      useHttps = await prefs.getBool(_httpsKey) ?? false;
     } catch (e) {
       debugPrint('Could not read settings: $e');
     }
